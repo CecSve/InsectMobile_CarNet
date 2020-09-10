@@ -1,0 +1,50 @@
+SampleID	Size fraction (mm)	PCRID	Sample 	Extraction date	Extraction method	Tube (mL)	TubeWeight (mg)	TubeInsectWeight (mg)	Insect volume (mL)	Amount of insects	DNA Buffer volume added (mL)	Supernatant volume (mL)	Dry mass (mg)	QIAquick purification date	QIASymphony purification date	Qubit (HS) DNA (ng/µl) qiaquick	Qubit (BR) DNA (ng/µl) qiaquick	Qubit (HS) DNA (ng/µl) qiasymphony	Qubit (BR) DNA (ng/µl) qiasymphony	Qubit samples size (µL)	Qubit date qiaquick	Qubit (BR) date qiaquick	Qubit date qiasymphony	Qubit (BR) date qiasymphony	Notes	
+GS_skov3_12_15	>10	IM17_24	Malaise	01-10-2018	Non-destructive	50			17	2	38		14154	02-11-2018	07-12-2018	56		39.3		2	05-12-2018		21-12-2018		One hymeoptera, one male bush cricket (orthoptera)	
+GS_skov3_12_15	<10	IM17_25	Malaise	01-10-2018	Non-destructive	1.5			0.6	21	1		1012	02-11-2018	07-12-2018	25.2		21		2	05-12-2018		21-12-2018		2 parasitic hymenoptera, 18 hymenoptera, 1 hemiptera	
+GS_mark2_12_15	<10	IM17_26	Malaise	01-10-2018	Non-destructive	1.5			0.5	64	1.2		1011	02-11-2018	07-12-2018	53		19.5		2	05-12-2018		21-12-2018		2 hemiptera, 1 cicada,1 hover fly, 1 mosquito, 9 hymenoptera, 3 aphids, 5 diptera, 2 parasitic wasps, 40 unknown	
+GS_skov1_17_20	<10	IM17_27	Malaise	01-10-2018	Non-destructive	1.5			0.5	16	1		1018	02-11-2018	07-12-2018	47.2		33.6		2	05-12-2018		21-12-2018		1 cicada, 1 hymenoptera, 4 coleoptera, 3 lepidoptera, 2 diptera, 1 aphid, 1 hemiptera, 3 unknown	
+GS_skov1_12_15	<10	IM17_28	Malaise	01-10-2018	Non-destructive	1.5			0.5	13	1		1015	02-11-2018	07-12-2018	38.8		27.5		2	05-12-2018		21-12-2018		1 Tipulidae, 1 diptera, 3 hymenoptera, 2 coleoptera, 4 unknown 2 parasitic hymenoptera	
+GS_mark1_12_15	<10	IM17_29	Malaise	01-10-2018	Non-destructive	1.5			0.3	8	1		1001	02-11-2018	07-12-2018	33.9		24.7		2	05-12-2018		21-12-2018		1 Syrphidae, 2 diptera, 1 parasitic hymenoptera, 4 unknown	
+GS_mark2_17_20	<10	IM17_30	Malaise	01-10-2018	Non-destructive	1.5			0.8	81	1.2		1027	02-11-2018	07-12-2018	too high	73	57		2	05-12-2018	04-01-2019	21-12-2018		29 diptera, 1 neuroptera, 18 hymenoptera (5+ was maybe the same species), 3 hemiptera, 1 coleoptera, 4 aphids, 25 unknown	
+SØ_mark3_12_15	<10	IM17_31	Malaise	01-10-2018	Non-destructive	1.5			0.6	14	1.2		1033	02-11-2018	07-12-2018	too high	83.5	49.7		2	05-12-2018	04-01-2019	21-12-2018		3 Syrphidae, 1 coleoptera, 2 diptera, 1 aphid, 3 hymenoptera, 3 unknown, 1 hemiptera	
+SØ_skov3_12_15	<10	IM17_32	Malaise	01-10-2018	Non-destructive	1.5			0.1	1	1		999	02-11-2018	07-12-2018	11.4		7.68		2	05-12-2018		21-12-2018		1 diptera	
+SØ_mark2_12_15	<10	IM17_33	Malaise	01-10-2018	Non-destructive	1.5			0.6	36	1.2		1028	02-11-2018	07-12-2018	too high	99.6	too high	90.9	2	05-12-2018	04-01-2019	21-12-2018	04-01-2019	13 diptera (8 the same species), 7 hymenopera, 5 coleoptera, 2 aphids, 1 parasitic hymenoptera, 8 unknown	
+GS_skov2_17_20	<10	IM17_34	Malaise	01-10-2018	Non-destructive	1.5			0.4	32	1.2		1012	02-11-2018	07-12-2018	37.7		28.5		2	05-12-2018		21-12-2018		5 hymenoptera, 2 coleoptera, 1 syrphidae, 2 diptera, 17 unknown, 4 lepidoptera, 1 culicidae	
+GS_skov2_12_15	<10	IM17_35	Malaise	01-10-2018	Non-destructive	1.5			0.6	20	1.2		1023	02-11-2018	07-12-2018	46.7		38		2	05-12-2018		21-12-2018		2 syrphidae, 1 lepidoptera, 5 diptera (1 was strange), 1 coleoptera, 9 unknown, 2 hymenoptera	
+ExBlank_01102018		IM17_36	ExBlank	01-10-2018	Non-destructive	1.5					2		994	02-11-2018	07-12-2018	too low		too low		2	05-12-2018		21-12-2018			
+SØ_skov1_12_15	>10	IM17_37	Malaise	02-10-2018	Non-destructive	15			3	1	5	5.5	6306	02-11-2018	07-12-2018	14.4		7.61		2	05-12-2018		21-12-2018		1 Tipulidae	
+SØ_skov1_12_15	<10	IM17_38	Malaise	02-10-2018	Non-destructive	15			0.5	2	1	0.5	6412	02-11-2018	07-12-2018	2.28		0.34		2	05-12-2018		21-12-2018		1 Hymenoptera, 1 aphid	
+SØ_skov3_17_20	<10	IM17_39	Malaise	02-10-2018	Non-destructive	15			0.5	12	1	1	6418	02-11-2018	07-12-2018	12.8		7.59		2	05-12-2018		21-12-2018		1 Coleoptera, 1 Hemiptera, 9 unknown (same unknown, perhaps thrips), 1 cicada	
+SØ_skov1_17_20	<10	IM17_40	Malaise	02-10-2018	Non-destructive	15			0.5	4	1	1	6359	02-11-2018	07-12-2018	0.797		0.337		2	05-12-2018		21-12-2018		1 mite, 2 Hymenoptera, 1 unknown	
+SØ_Mark1_17_20	<10	IM17_41	Malaise	02-10-2018	Non-destructive	15			0.5	14	2.5	2.5	6245	02-11-2018	07-12-2018	10.3		6.09		2	05-12-2018		21-12-2018		4 Diptera, 3 unknown, 1 aphid, 2 Lepidoptera/moth, 1 cicada, 3 mites	
+ExBlank_02102018		IM17_42	ExBlank	02-10-2018	Non-destructive	15					2.5	2.5	6343	02-11-2018	07-12-2018	too low		too low		2	05-12-2018		21-12-2018			
+ExBlank2_02102018		IM17_43	Blank_H2O	02-10-2018	H2O	15						2.5		02-11-2018	07-12-2018	too low		too low		2	05-12-2018		21-12-2018		H2O in tray between sample SØ_skov1_12_15 and SØ_skov3_17_20 to test for DNA residues, NOT dried in the oven overnight	
+SØ_skov2_12_15	>10	IM17_48	Malaise	22-10-2018	Non-destructive	15			2	3	7	6.7	67.8	02-11-2018		too low		3.06		2	05-12-2018		04-01-2019		1 Bombus,1 hymenoptera, 1 diptera 	
+SØ_skov2_12_15	<10	IM17_49	Malaise	22-10-2018	Non-destructive	15			0.5	37	4.5	4.5	26.6			21.1		10.2		2			30-11-2018		12 diptera, 1 syrphidae, 2 nematocera, 6 hymenoptera, 1 aphid, 13 unknown, 3 of the same cicada	
+SØ_mark2_17_20	<10	IM17_50	Malaise	22-10-2018	Non-destructive	15			0.5	15	4.5	4.5	8.7			8.31		4.96		2			30-11-2018		8 diptera, 1 hymenoptera, 2 coleoptera, 3 aphids, 1 unknown	
+SØ_mark3_17_20	<10	IM17_51	Malaise	22-10-2018	Non-destructive	15			0.5	16	4.5	4.5	13			14.1		7.65		2			30-11-2018		11 diptera, 1 cicada, 4 hymenoptera	
+SØ_mark3_17_20	>10	IM17_52	Malaise	22-10-2018	Non-destructive	15			0.5	1	4.5	4.5	1.7			2.37		1.55		2			30-11-2018		1 tipulidae	
+SØ_skov2_17_20	<10	IM17_53	Malaise	22-10-2018	Non-destructive	15			0.5	20	4.5	4.5	16.9			20.1		11.3		2			30-11-2018		4 hymenoptera, 1 syrphidae, 3 lepidoptera, 3 coleoptera, 5 diptera, 4 cicada	
+SØ_mark1_12_15	<10	IM17_54	Malaise	22-10-2018	Non-destructive	15			0.5	18	4.5	4.5	7.8			5.49		3.14		2			30-11-2018		1 mite, 3 spiders, 1 lepidoptera, 10 diptera, 3 hymenoptera	
+ExBlank_22102018		IM17_55	ExBlank	22-10-2018	Non-destructive	15					2	2				too low		too low		2			30-11-2018			
+SØ_mark1_12_15	>10	IM17_56	Malaise	22-10-2018	Non-destructive	15			1	2	5	4.7	15.8			5.39		2.92		2			30-11-2018		1 male Panorpida, 1 syrphidae	
+ExBlank_23102018		IM17_57	ExBlank	23-10-2018	Non-destructive	15					2	2				too low		too low		2			30-11-2018			
+SØ_skov2_17_20	<10	IM17_58	Car net	23-10-2018	Non-destructive	15			1		6	5.5				too high	86.1	too high	94.1	2		04-01-2019	30-11-2018	04-01-2019		
+SØ_skov1_12_15	<10	IM17_59	Car net	23-10-2018	Non-destructive	15			1		6	5.5				49.8		49.0		2			30-11-2018			
+SØ_skov1_12_15	>10	IM17_60	Car net	23-10-2018	Non-destructive	15			0.5	1	4.5	4.5				7.15		4.09		2			30-11-2018		1 diptera	
+SØ_mark1_12_15	<10	IM17_61	Car net	23-10-2018	Non-destructive	15			1		5.5	5.5				55.0		52.0		2			30-11-2018			
+SØ_mark1_12_15	>10	IM17_62	Car net	23-10-2018	Non-destructive	15			1	3	6	5.7				5.51		3.97		2			30-11-2018		1 Pieris rapae or Gonepteryx rhamni, 1 syrphidae, 1 staphylinidae	
+SØ_mark2_17_20	<10	IM17_63	Car net	23-10-2018	Non-destructive	15			0.5		4.5	4.5				18.4		9.04		2			30-11-2018			
+SØ_mark2_17_20	>10	IM17_64	Car net	23-10-2018	Non-destructive	15			0.5	1	4.5	4.3				9.12		5.82		2			30-11-2018		1 Bombus or Andrena	
+GS_skov_17_20	<10	IM17_65	Car net	20-11-2018	Non-destructive	15	6388.6	6517.74	2		7	6.5	129.14		03-01-2019			41					04-01-2019			
+GS_skov_17_20	>10	IM17_66	Car net	20-11-2018	Non-destructive	15	6390.3	6435.32	0.5	1	4.5	4.5	45.02		03-01-2019			1.66					04-01-2019		1 Bombus	
+GS_mark_17_20	<10	IM17_67	Car net	20-11-2018	Non-destructive	15	6335.6	6381.62	0.5		4.5	4.5	46.02		03-01-2019			14.8					04-01-2019		1 Coccinellidae	
+GS_mark_17_20	>10	IM17_68	Car net	20-11-2018	Non-destructive	15	6129.2	6175.58	1	2	6	6	46.38		03-01-2019			1.18					04-01-2019		2 Vespidae	
+GS_skov_12_15	<10	IM17_69	Car net	20-11-2018	Non-destructive	15	6370.2	6463.2	1		6	5.5	93		03-01-2019			33.3					04-01-2019		2 Tabanidae, 1 Odonata (head, abdomen detached), 1 Bombus, 1 fly (Bibionidae?)	
+GS_skov_12_15	>10	IM17_70	Car net	20-11-2018	Non-destructive	15	6431.1	6641.5	5	5	10	9	210.4		03-01-2019			49.1					04-01-2019			
+FilterG4_1		IM17_71	Filter	20-11-2018	Non-destructive	15					2	0.5			03-01-2019			too low					04-01-2019		All supernatant transferred for QS purification	
+Filter541_1		IM17_72	Filter	20-11-2018	Non-destructive	15					2	1			03-01-2019			too low					04-01-2019			
+FilterG4_2		IM17_73	Filter	20-11-2018	Non-destructive	15					2				03-01-2019			too low					04-01-2019		Lid not closed properly during lysing, a small amount was transferred for QS purification and no supernatant was retained	
+ExBlank_20112018		IM17_74	ExBlank	20-11-2018	Non-destructive	15					2	2			03-01-2019			too low								
+9AM6532																too low				2	05-12-2018				Troglodytes troglodytes, male, sampled twice	
+9AM6530																				2	05-12-2018				Erithacus rubecula, male, sampled twice	

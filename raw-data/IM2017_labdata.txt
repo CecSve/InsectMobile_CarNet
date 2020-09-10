@@ -1,0 +1,31 @@
+Sample ID	Size fraction (mm)	PCRID	Sample 	Extraction date	Extraction method	Tube (mL)	TubeWeight (mg)	TubeInsectWeight (mg)	Insect volume (mL)	Amount of insects	DNA Buffer volume added (mL)	Supernatant volume (mL)	Dry mass (mg)	QIAquick purification date	QIASymphony purification date	Qubit (HS) DNA (ng/µl) qiaquick	Qubit (BR) DNA (ng/µl) qiaquick	Qubit (HS) DNA (ng/µl) qiasymphony	Qubit (BR) DNA (ng/µl) qiasymphony	Qubit sample size (µL)	Qubit date qiaquick	Qubit date qiaquick (BR)	Qubit date qiasymphony	Qubit date qiasymphony (BR)	Notes												
+P002.5	<5	IM17_1	Car net	31-08-2018	Non-destructive	15								13-09-2018		45.9				2	10-09-2018				Size sorted in normal tap water (the tap was not used for a long time and had iron residues etc. )												
+P002.2	<5	IM17_2	Car net	04-09-2018	Non-destructive	15					6			13-09-2018	03-01-2019	43		42.3		2	10-09-2018		04-01-2019														
+P002.2	>5	IM17_3	Car net	04-09-2018	Non-destructive	15					6			13-09-2018	03-01-2019	32.8		19.1		2	10-09-2018		04-01-2019														
+P002.2	>10	IM17_4	Car net	04-09-2018	Non-destructive	15					10			13-09-2018	03-01-2019	25.5		17.7		2	10-09-2018		04-01-2019														
+P002.4	2	IM17_5	Car net	06-09-2018	Non-destructive	15					15		7032	13-09-2018	03-01-2019	21.9		10.6		2	10-09-2018		04-01-2019		Not size sorted, but split into three tubes due to large sized insects												
+P002.4	1	IM17_6	Car net	06-09-2018	Non-destructive	15					10		6387	13-09-2018	03-01-2019	22		20.8		2	10-09-2018		04-01-2019		Not size sorted, but split into three tubes due to large sized insects												
+P002.5	>5	IM17_7	Car net	31-08-2018	Non-destructive	15								13-09-2018		19.4				2	10-09-2018																
+P002.4	3	IM17_8	Car net	06-09-2018	Non-destructive	15					10		6430	13-09-2018	03-01-2019	19.7		11.7		2	10-09-2018		04-01-2019														
+P002.2 Blank		IM17_9	ExBlank	04-09-2018	Non-destructive	15								13-09-2018	03-01-2019	too low		too low		2	10-09-2018		04-01-2019		Not size sorted, but split into three tubes due to large sized insects												
+P001.4	<10	IM17_10	Car net	10-09-2018	Non-destructive	15			1		3		6389	13-09-2018	03-01-2019	23.2		40.1					04-01-2019														
+P001.5	<10	IM17_11	Car net	10-09-2018	Non-destructive	15			1		3		6439	13-09-2018	03-01-2019	24.4		54.1					04-01-2019														
+P002.6	<10	IM17_12	Car net	10-09-2018	Non-destructive	50			20		25		13168	13-09-2018		39																					
+P002.6	>10	IM17_13	Car net	10-09-2018	Non-destructive	15			3	4	6		6544	13-09-2018	03-01-2019	43.6		44.7			19-09-2018				2 beetles, 2 moths												
+Blank_10092018		IM17_14	ExBlank	10-09-2018	Non-destructive	15					2		6372	13-09-2018	03-01-2019	too low		too low			19-09-2018		04-01-2019		Called P001.5 blank on falcon tube												
+P002.3	<10	IM17_15	Car net	12-09-2018	Non-destructive	15			3.5		6.5	4	7654	13-09-2018		47.8		28.9		2	19-09-2018		30-11-2018														
+P002.3	>10	IM17_16	Car net	12-09-2018	Non-destructive	15			3		6	4	6889	13-09-2018		34.8		too high	87.7	2	19-09-2018		30-11-2018	04-01-2019													
+P005.3	<10	IM17_17	Car net	12-09-2018	Non-destructive	15			2		5	2.5	6381	13-09-2018		24.7		21.7		2	19-09-2018		30-11-2018														
+P005.3	>10	IM17_18	Car net	12-09-2018	Non-destructive	15			1	5	4	1.5	6222	13-09-2018		36.4		27.1		2	19-09-2018		30-11-2018		4 moths, 1 mosquito or wasp												
+P005.2	<10	IM17_19	Car net	12-09-2018	Non-destructive	15			3.5		6.5	6	6775	13-09-2018		43.6		42		2	19-09-2018		30-11-2018														
+P005.2	>10	IM17_20	Car net	12-09-2018	Non-destructive	15			1	2	4	2	6422	13-09-2018		4.7		3.34		2	19-09-2018		30-11-2018		1 bee, 1 hover fly												
+P005.1	<10	IM17_21	Car net	12-09-2018	Non-destructive	15			0.5		2	1	6338	13-09-2018		27.5		29.2		2	19-09-2018		30-11-2018														
+P005.1	>10	IM17_22	Car net	12-09-2018	Non-destructive	15			0.5	1	2	1	6145	13-09-2018		23.7		34.6		2	19-09-2018		30-11-2018		1 moth												
+Blank_12092018		IM17_23	ExBlank	12-09-2018	Non-destructive	15					2	1.5	6294	13-09-2018		too low					19-09-2018																
+P80.1A	> 10	IM17_44	Car net	03-10-2018	Non-destructive	15			1	2	6.5	6	6171	02-11-2018	07-12-2018	13.7		9.31		2	05-12-2018		21-12-2018		Cabbage butterfly that lost scales and abdomen in the extraction process, wasp												
+P80.1A	< 10	IM17_45	Car net	03-10-2018	Non-destructive	50			7.5		17.5	13.5	13061	02-11-2018	07-12-2018	too high	145	too high	107	2	05-12-2018	04-01-2019	21-12-2018	04-01-2019													
+P112.1B 	<10	IM17_46	Car net	03-10-2018	Non-destructive	50			6.5		15	13	12996	02-11-2018	07-12-2018	58		49.8		2	05-12-2018		21-12-2018														
+ExBlank_03102018		IM17_47	ExBlank	03-10-2018	Non-destructive	15					1	1	6146	02-11-2018	07-12-2018	too low		too low		2	05-12-2018		21-12-2018														
+																																					
+																																					
+																																					
