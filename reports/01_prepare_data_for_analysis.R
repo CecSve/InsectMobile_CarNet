@@ -60,7 +60,6 @@ asvs <- asvs %>% rownames_to_column(var = "otuids")
 asvs <- asvs %>% filter(otuids %in% keep) %>% column_to_rownames(var = "otuids")
 write.table(asvs, file = "cleaned-data/asvtable.txt")
 
-
 ### merge metadata & lab data ##########
 # lab data
 names(IM2017_labdata)
