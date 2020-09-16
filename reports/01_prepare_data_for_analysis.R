@@ -84,7 +84,7 @@ pilot_metadata$PCRID <- NA
 
 pilot_metadata <- pilot_metadata %>% select(PCRID, SampleID, Locality, Route, Lat, Long, LandUseType, Date, TimeStart, TimeEnd, `Wind (m/s)`, `Temperature (celsius)`, SamplingNotes)
 
-pilot_metadata$Date <- as.Date(pilot_metadata$Date)
+pilot_metadata$Date <- as.Date(pilot_metadata$Date, "%d-%m-%Y")
 metadata_validation$Date <- as.Date(metadata_validation$Date, "%d-%m-%Y")
 str(metadata_validation)
 str(pilot_metadata)
