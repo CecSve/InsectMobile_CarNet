@@ -108,7 +108,7 @@ data$cyDay <- data$yDay - median(data$yDay)
 
 # format time
 #sort time data to standard each around the time band
-data$numberTime <- as.numeric(hms(data$TimeStart))#Denmark
+data$numberTime <- as.numeric(lubridate::hms(data$TimeStart))#Denmark
 #transform to minutes
 data$numberTime <- data$numberTime/60 
 
@@ -245,7 +245,7 @@ hist(plot_data$richness) # non-normal and log and sqrt does not resolve this
 
 str(plot_data)
 
-# Stacked bar chart oof OTU richness
+# Stacked bar chart of ASV richness
 g <- ggplot(plot_data, aes(LandUseType, richness))
 l <- ggplot(plot_data, aes(Time_band, richness))
 s <- ggplot(plot_data, aes(Route, richness))
@@ -265,8 +265,20 @@ fig1 <- annotate_figure(figure,
 
 save_plot("plots/fig1_richness_landcover_timeband_routes.png", fig1, base_height = 12, base_width = 10)
 
-### insect family ######
-taxon <- dplyr::select(taxonomy, "family") # or choose other taxonomic levels (but remember morphology only has order level for all individuals)
+### insect order - Denmark comparison ##############
+# load species data on insects from Denmark (downloaded manually, not updated since May 27th 2020)
+
+allearter <- read_csv("raw-data/allearter_19092020.csv")
+
+dkarter <-  allearter %>% group_by(Orden) %>% dplyr::summarise(value = n()) # count how many species are known for each order
+
+# remove non-flying insect orders
+remove <- c("Phthiraptera", "Siphonaptera", "Zygentoma", "Microcoryphia")
+dkarter <-  dkarter %>% dplyr::filter(!Orden %in% remove)
+
+# prepare study data
+taxon <- taxonomy %>% drop_na(species) # remove the obeservation were the ASV was not assigned species level taxonomy
+taxon <- dplyr::select(taxonomy, "order") # or choose other taxonomic levels (but remember morphology only has order level for all individuals)
 otus <- decostand(asvs, "pa") # make asvtable into presence absence
 
 # To be able to merge the OTU table with the taxonomy table, they need to have a common column to call
@@ -278,39 +290,42 @@ taxon_data <- column_to_rownames(taxon_data, var = "otuid")
 
 # working with reshape2 to wrangle data from wide to long format
 longdata <- melt(taxon_data) 
-#longdata <- longdata[longdata$value!=0,]
-longdata <- aggregate(. ~ family + variable, data = longdata, FUN = sum) # if values in the insect order column and the sample (variable) column are identical, then sum up how many unique otus there were in the sample from that insect order (richness)
+longdata <- longdata[longdata$value!=0,] # remove zeros in this case
+longdata <- aggregate(. ~ order + variable, data = longdata, FUN = sum) # if values in the insect order column and the sample (variable) column are identical, then sum up how many unique otus there were in the
 
-longdata2 <- longdata %>% group_by(family) %>% 
-  mutate(value_mean = mean(value)) %>% 
-  arrange(value_mean) %>% ungroup() 
+# match columns prior to merge
+dkarter <- dkarter %>% rename("order" = Orden) # first rename column header
+dkarter$variable <- NA
+dkarter$origin <- "Denmark"
+longdata$origin <- "Car net: names species"
 
-longdata2$family <- factor(longdata2$family, levels=unique(longdata2$family))
-str(longdata2)
+str(longdata)
+dkarter <- dkarter %>% dplyr::select(order, variable, value, origin)
 
-p1 <- ggplot(data = longdata2, aes(x = family , y = variable , fill = value)) 
-family_raster_plot <- p1 + geom_raster() + scale_fill_gradient(low="midnightblue", high="darkgoldenrod2") + 
-  theme_bw() +
-  labs(title = "B", fill = "Unique \nASVs") + xlab("Insect family") +
-  theme_minimal_grid() + theme(axis.text.x=element_text(size=9, angle=90, vjust=0.3, hjust = 1),
-                               axis.text.y=element_blank(),
-                               axis.ticks = element_blank(),
-                               axis.title.y = element_blank(),
-                               axis.title.x = element_text(face = "bold"),
-                               plot.title=element_text(face = "bold")) + scale_x_discrete(limits = rev(levels(longdata2$family)))
+ordercomp <- rbind(longdata, dkarter)
 
-# how frequent is the different orders detected
-sum(longdata2$value) # 2116
-aggregate(longdata2$value, by=list(family=longdata2$family), FUN=sum) # 126 families
-40/126 # so many has only one unique ASV in the family
-293/2116 # Chironomidae 
-183/2116 # Cecidomyiidae 
-155/2116 #Ceratopogonidae 
-146/2116 # Staphylinidae 
-143/2116 # Phoridae 
-100/2116 # most have under hundred species, what does thta equal
-119/126
+# add study data without assigned species
+taxon <- dplyr::select(taxonomy, "order") # or choose other taxonomic levels (but remember morphology only has order level for all individuals)
+otus <- decostand(asvs, "pa") # make asvtable into presence absence
 
-p1 <- plot_grid(order_raster_plot, family_raster_plot, ncol = 1, align = "hv", rel_heights = 1, rel_widths = 2)
+# To be able to merge the OTU table with the taxonomy table, they need to have a common column to call
+otus <- rownames_to_column(otus, var = "otuid")
+taxon <- rownames_to_column(taxon, var = "otuid") # remeber to remake the column into rownames for both datasets if you need to
 
-save_plot("plots/heatmap_order_family_unique_ASVs.png", p1, base_height = 16, base_width = 16)
+taxon_data <- left_join(otus, taxon, by = "otuid")
+taxon_data <- column_to_rownames(taxon_data, var = "otuid")
+
+# working with reshape2 to wrangle data from wide to long format
+longdata <- melt(taxon_data) 
+longdata <- longdata[longdata$value!=0,] # remove zeros in this case
+longdata <- aggregate(. ~ order + variable, data = longdata, FUN = sum) # if values in the insect order column and the sample (variable) column are identical, then sum up how many unique otus there were in the
+longdata$origin <- "Car net: ASV richness"
+
+# add data to order comparison
+ordercomp <- rbind(ordercomp, longdata)
+
+c <- ggplot(ordercomp, aes(origin, value))
+plot <- c + geom_bar(stat = "identity", aes(fill = order), show.legend = T, position = "fill") + labs(x = "", y = "Relative abundance", fill = "Insect order", title = "A") + theme_classic2() + scale_fill_manual(values = c("red", viridis::viridis(20))) + theme(title = element_text(face = "bold"), legend.position = "bottom") # position = "fill"in geom_bar gives relative
+
+# + scale_fill_manual(values = c("red", viridis::viridis(20)))
+# + scale_fill_viridis_d(option = "plasma") 
