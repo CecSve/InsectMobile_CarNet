@@ -30,6 +30,8 @@ library(ggplot2)
 library(cowplot)
 library(viridis)
 library(ggpubr)
+library(grid)
+library(gridExtra)
 
 ### colour scheme ##################
 landuseCols <- c("#CC79A7", "#E69F00", "#56B4E9", "#009E73") # colour friendly, ordered by land cover 
@@ -145,9 +147,9 @@ mapplot <- denmark %>%
           fill="white", colour = "black") + 
   coord_sf() + 
   geom_point(data = landuse.map, 
-             aes(x=lat, y = long, colour = "darkgrey"), alpha = 0.5, size=4, show.legend = F) + theme_void() + scale_colour_manual(values = "deepskyblue1") + scalebar(denmark, dist = 25, dist_unit = "km", transform = T, model = "WGS84", st.size = 3) + north(denmark, symbol = 4, scale = 0.07) + panel_border() + theme(plot.subtitle = element_text(face = "bold", size = 20))  
+             aes(x=lat, y = long, colour = "darkgrey"), size=4, show.legend = F) + theme_void() + scale_colour_manual(values = "deepskyblue1") + scalebar(denmark, dist = 25, dist_unit = "km", transform = T, model = "WGS84", st.size = 3) + labs(subtitle = "A") + north(denmark, symbol = 4, scale = 0.07) + theme(plot.subtitle = element_text(face = "bold", size = 20), plot.margin = margin(0, 0, 0, 0, "cm")) + panel_border()
 
-ggsave("plots/Sampling_map_DK.png", height = 10) # remember to increase DPI for publication
+#ggsave("plots/Sampling_map_DK.png", height = 10) # remember to increase DPI for publication
 
 ### analysis  #####
 #how many routes
@@ -300,7 +302,7 @@ addSmallLegend <- function(myPlot, pointSize = 1, textSize = 7, spaceLegend = 0.
           legend.key.size = unit(spaceLegend, "lines"), plot.margin = margin(0, 0, 0, 0, "cm"))
 }
 
-stacked_plot <- c + geom_bar(stat = "identity", aes(fill = order), show.legend = T, position = "fill") + labs(x = "", y = "Relative abundance", fill = "Insect order", subtitle = "A")  + theme_minimal() + scale_fill_manual(values = c("red", viridis::viridis(20))) + theme(plot.subtitle = element_text(size = 20, face = "bold"), legend.position = "bottom", plot.margin = margin(0, 0, 0, 0, "cm"), axis.text.x = element_text(size = 8),axis.text.y = element_text(size = 8)) + guides(fill = guide_legend(nrow = 3))# position = "fill"in geom_bar gives relative
+stacked_plot <- c + geom_bar(stat = "identity", aes(fill = order), show.legend = T, position = "fill") + labs(x = "", y = "Relative species richness", fill = "Insect order", subtitle = "B")  + theme_minimal() + scale_fill_manual(values = c("red", viridis::viridis(20))) + theme(plot.subtitle = element_text(size = 20, face = "bold"), legend.position = "bottom", plot.margin = margin(0, 0, 0, 0, "cm"), axis.text.x = element_text(size = 8),axis.text.y = element_text(size = 8)) + guides(fill = guide_legend(nrow = 3))# position = "fill"in geom_bar gives relative
 
 # Apply on original plot
 small_leg_plot <- addSmallLegend(stacked_plot)
@@ -346,14 +348,8 @@ setdiff(dkflies$`Videnskabeligt navn`, flies$species)
 ### species accumulation curves #########
 otus <- otus %>% column_to_rownames(var = "otuid")
 
-attach(taxonomy)
-pool <- specpool(otus, order)
-
-boxplot(specnumber(otus) ~ order, col="hotpink", border="cyan3",
-        notch=FALSE)
-
 ## Accumulation model
-pool <- poolaccum(otus)
+pool <- poolaccum(otus, permutations = 1000)
 plot(pool)
 
 # extract data for ggplot 
@@ -377,8 +373,8 @@ acummulation_plot <- data_plot %>% ggplot(aes(N, Chao)) +
       ) + labs(
         x = "Number of samples",
         y = "Estimated Richness (Chao)",
-        subtitle = "B"
-      ) + scale_x_continuous(limits = c(0, 1000)) + scale_fill_manual(values = "lightgrey")
+        subtitle = "C"
+      ) + scale_x_continuous(limits = c(0, 1000)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) + scale_fill_manual(values = "lightgrey")
 
 acummulation_plot_zoom <-  data_plot %>% ggplot(aes(N, Chao)) +
   geom_line(aes(color = "black"), size = 2) + theme_minimal_grid() + scale_colour_manual(values = "darkgrey") + theme(
@@ -397,7 +393,7 @@ acummulation_plot_zoom <-  data_plot %>% ggplot(aes(N, Chao)) +
         linetype = 2,
         alpha = 0.2,
         show.legend = F
-      ) + labs(
+      ) + scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) + labs(
         x = "",
         y = ""
         #subtitle = "B",
@@ -406,9 +402,104 @@ acummulation_plot_zoom <-  data_plot %>% ggplot(aes(N, Chao)) +
 acummulation_plot
 acummulation_plot_zoom
 
-b <- acummulation_plot + annotation_custom(ggplotGrob(acummulation_plot_zoom), xmin = 500, xmax = 1000, ymin = 700, ymax = 1800)
+b <- acummulation_plot + annotation_custom(ggplotGrob(acummulation_plot_zoom), xmin = 500, xmax = 1000, ymin = -600, ymax = 250)
 
-ggsave("plots/zoom_accumulation_chao1.png")
+#ggsave("plots/zoom_accumulation_chao1.png")
 
-figure1 <- ggarrange(small_leg_plot, b, ncol = 1, align = "v")
+library(gtable)
+g1 <- ggplotGrob(mapplot)
+g2 <- ggplotGrob(small_leg_plot)
+g3 <- ggplotGrob(b)
+g <- rbind(g1, g2, g3, size = "first")
+g$widths <- unit.pmax(g1$widths, g2$widths, g3$widths)
+grid.newpage()
+grid.draw(g)
+
+ggsave2("plots/threemonsters.png", width = 20, height = 40) # does not look aligned
+
+
+ggsave('plots/g_test.png', plot = g, width=300,height=600, units = "mm", dpi=300)
+
+png("plots/g.png",width = 600, height = 1200, units = "mm") 
+grid.draw(g) 
+dev.off()
+
+figure1 <- ggarrange(mapplot, small_leg_plot, b, ncol = 1, align = "v")
 save_plot("plots/fig1_relabun_estimaterich.png", figure1, base_height = 10, base_width = 8)
+
+### z-test ##################
+test <- allearter %>%
+  group_by(Orden) %>%
+  summarise(n = n())
+
+taxonomy %>%
+  group_by(order) %>%
+  summarise(n = n())
+
+# Is the proportion of insect orders car nets equal to the proportion of insect orders in Denmark
+# Coleoptera
+res <- prop.test(x = c(643, 3866), n = c(4546, 18882))
+# Printing the results
+res 
+
+# Dermaptera
+res <- prop.test(x = c(1, 6), n = c(4546, 18882))
+# Printing the results
+res 
+
+# Diptera
+res <- prop.test(x = c(2405, 5086), n = c(4546, 18882))
+# Printing the results
+res 
+
+# Ephemeroptera
+res <- prop.test(x = c(11, 43), n = c(4546, 18882))
+# Printing the results
+res 
+
+# Hemiptera  
+res <- prop.test(x = c(410, 1495), n = c(4546, 18882))
+# Printing the results
+res 
+
+# Hymenoptera     
+res <- prop.test(x = c(855, 5150), n = c(4546, 18882))
+# Printing the results
+res 
+
+# Lepidoptera      
+res <- prop.test(x = c(98, 2590), n = c(4546, 18882))
+# Printing the results
+res 
+# Mecoptera         
+res <- prop.test(x = c(2, 4), n = c(4546, 18882))
+# Printing the results
+res 
+# Neuroptera        
+res <- prop.test(x = c(2, 62), n = c(4546, 18882))
+# Printing the results
+res 
+# Odonata           
+res <- prop.test(x = c(5, 60), n = c(4546, 18882))
+# Printing the results
+res 
+# Orthoptera        
+res <- prop.test(x = c(4, 38), n = c(4546, 18882))
+# Printing the results
+res 
+# Plecoptera        
+res <- prop.test(x = c(2, 25), n = c(4546, 18882))
+# Printing the results
+res 
+# Psocoptera (Psocodea)
+res <- prop.test(x = c(40, 62), n = c(4546, 18882))
+# Printing the results
+res 
+# Thysanoptera     
+res <- prop.test(x = c(60, 113), n = c(4546, 18882))
+# Printing the results
+res 
+# Trichoptera   
+res <- prop.test(x = c(8, 172), n = c(4546, 18882))
+# Printing the results
+res 
