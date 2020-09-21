@@ -418,7 +418,7 @@ grid.draw(g)
 ggsave2("plots/threemonsters.png", width = 20, height = 40) # does not look aligned
 
 
-ggsave('plots/g_test.png', plot = g, width=300,height=600, units = "mm", dpi=300)
+ggsave('plots/g_test.tiff', plot = g, width=300,height=600, units = "mm", dpi=300)
 
 png("plots/g.png",width = 600, height = 1200, units = "mm") 
 grid.draw(g) 
