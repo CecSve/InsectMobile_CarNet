@@ -286,9 +286,6 @@ ordercomp <- rbind(longdata, dkarter)
 # which insect orders were not detected with the car net
 setdiff(dkarter$order, longdata$order)
 
-# how many species were detected by the net and is not present in the Danish species database?
-newspecies <- setdiff(taxonomy$species, allearter$`Videnskabeligt navn`) # the first observation is NA, so 338 species not in the Danish database
-
 ### plot stacked bar plot of insect orders ###########
 c <- ggplot(ordercomp, aes(origin, value))
 stacked_plot <- c + geom_bar(stat = "identity", aes(fill = order), show.legend = T, position = "fill") + labs(x = "", y = "Relative abundance", fill = "Insect order", subtitle = "A") + theme_classic2() + scale_fill_manual(values = c("red", viridis::viridis(20))) + theme(title = element_text(), legend.position = "bottom",axis.text.x = element_text(size = 8), axis.text.y = element_text(size = 8)) + guides(fill = guide_legend(nrow = 2))# position = "fill"in geom_bar gives relative
@@ -312,9 +309,76 @@ small_leg_plot <- addSmallLegend(stacked_plot)
 # + scale_fill_manual(values = c("red", viridis::viridis(20)))
 # + scale_fill_viridis_d(option = "plasma") 
 
+### new species for DK? ###############
+# how many species were detected by the net and is not present in the Danish species database?
+newspecies <- setdiff(taxonomy$species, allearter$`Videnskabeligt navn`) # the first observation is NA, so 338 species not in the Danish database
+
 # comparison of car net and DK database
-newspeciesDK <- taxonomy %>% filter(species %in% newspecies) 
+newspeciesDK <- taxonomy %>% rownames_to_column(var = "ASVID") %>% filter(species %in% newspecies) 
+#write.table(newspeciesDK, file = "cleaned-data/newspecies_DK_alldata.txt", sep = "\t", row.names = F)
+#newspeciesDK <- newspeciesDK %>% column_to_rownames(var = "ASVID")
+newdistinct_species <- newspeciesDK %>% distinct(species, .keep_all = T)%>% drop_na(species)
 newspeciesDK <- newspeciesDK %>% group_by(order, species) %>% distinct(species) %>% drop_na(species)
+#write.table(newspeciesDK, file = "cleaned-data/newspecies_DK.txt", sep = "\t", row.names = F)
+
+### gbif comparison ###############
+library(rgbif)
+
+# fill in your gbif.org credentials 
+user <- "" # your gbif.org username 
+pwd <- "" # your gbif.org password
+email <- "" # your email 
+
+library(dplyr)
+library(purrr)
+library(readr)  
+library(magrittr) # for %T>% pipe
+library(rgbif) # for occ_download
+library(taxize) # for get_gbifid_
+
+# match the names 
+gbif_taxon_keys <- 
+  newspeciesDK %>% 
+  pull("species") %>% # use fewer names if you want to just test 
+  taxize::get_gbifid_(method="backbone") %>% # match names to the GBIF backbone to get taxonkeys
+  imap(~ .x %>% mutate(original_sciname = .y)) %>% # add original name back into data.frame
+  bind_rows() %T>% # combine all data.frames into one
+  readr::write_tsv(path = "all_matches.tsv") %>% # save as side effect for you to inspect if you want
+  #filter(matchtype == "EXACT" & status == "ACCEPTED") %>% # get only accepted and matched names
+  filter(class == "Insecta") %>% # remove anything that might have matched to a non-plant
+  pull(usagekey) # get the gbif taxonkeys
+
+# gbif_taxon_keys should be a long vector like this c(2977832,2977901,2977966,2977835,2977863)
+# !!very important here to use pred_in!!
+# use matched gbif_taxon_keys from above 
+occ_download(
+  pred_in("taxonKey", gbif_taxon_keys),
+  pred("country", "DK"),
+  format = "SIMPLE_CSV",
+  user=user,pwd=pwd,email=email
+) # this generates a file for your user where the matches are
+
+# use matched gbif_taxon_keys from above 
+occ_download(
+  pred_in("taxonKey", gbif_taxon_keys),
+  pred_in("country", c("SE", "NO", "DE")),
+  format = "SIMPLE_CSV",
+  user=user,pwd=pwd,email=email
+) # this generates a file for your user where the matches are
+
+gbif_query <- read.delim("raw-data/newspecies_DK.csv")
+gbif_query_scandi <- read.delim("raw-data/newspecies_scandi.csv")
+
+#test <- gbif_query %>% distinct(species, .keep_all = T)
+
+setdiff(newspeciesDK$species, gbif_query$species) # How many species are not found in DK
+setdiff(newspeciesDK$species, gbif_query_scandi$species) # How many species are not found in the countries bordering DK 
+
+nooccurrence_DK <- anti_join(newdistinct_species, gbif_query, by = "species")
+nooccurrence_scandi <- anti_join(newdistinct_species, gbif_query_scandi, by = "species")
+
+write.table(nooccurrence_DK, file = "cleaned-data/nooccurrence_DK.txt", sep = "\t", row.names = F)
+write.table(nooccurrence_scandi, file = "cleaned-data/nooccurrence_scandi.txt", sep = "\t", row.names = F)
 
 # which order does the new species belong to and what is the frequency 
 newspeciesDK %>%
@@ -415,20 +479,48 @@ g$widths <- unit.pmax(g1$widths, g2$widths, g3$widths)
 grid.newpage()
 grid.draw(g)
 
-ggsave2("plots/threemonsters.png", width = 20, height = 40) # does not look aligned
-
-
 ggsave('plots/g_test.tiff', plot = g, width=300,height=600, units = "mm", dpi=300)
 
-png("plots/g.png",width = 600, height = 1200, units = "mm") 
-grid.draw(g) 
-dev.off()
+#figure1 <- ggarrange(mapplot, small_leg_plot, b, ncol = 1, align = "v")
+#save_plot("plots/fig1_relabun_estimaterich.png", figure1, base_height = 10, base_width = 8)
 
-figure1 <- ggarrange(mapplot, small_leg_plot, b, ncol = 1, align = "v")
-save_plot("plots/fig1_relabun_estimaterich.png", figure1, base_height = 10, base_width = 8)
+### z-test  ##################
+# how many unique observations in taxonomy
+length(unique(taxonomy$order))
+length(unique(taxonomy$family))
+length(unique(taxonomy$genus))
+length(unique(taxonomy$species))
 
-### z-test ##################
-test <- allearter %>%
+# in the Dnaish species list
+allearter %>% dplyr::filter(!Orden %in% remove) %>% group_by(Orden) %>% dplyr::summarise(value = n()) # count how many species are known for each order
+dkarter_z <- allearter %>% dplyr::filter(!Orden %in% remove) # remove non-flying insect orders
+length(unique(dkarter_z$Orden))
+length(unique(dkarter_z$Familie))
+length(unique(dkarter_z$Slægt))
+length(unique(dkarter_z$`Videnskabeligt navn`))
+
+# order
+res <- prop.test(x = c(15, 19), n = c(19, 19))
+# Printing the results
+res
+
+# family
+res <- prop.test(x = c(215, 485), n = c(485, 485))
+# Printing the results
+res
+
+# genus
+res <- prop.test(x = c(998, 5467), n = c(5467, 5467))
+# Printing the results
+res
+
+# species
+res <- prop.test(x = c(1607, 18791), n = c(18791, 18791))
+# Printing the results
+res
+
+
+test <- allearter %>% dplyr::filter(!Orden %in% remove) %>%
   group_by(Orden) %>%
   summarise(n = n())
 
