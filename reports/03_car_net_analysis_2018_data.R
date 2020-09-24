@@ -345,7 +345,7 @@ gbif_taxon_keys <-
   bind_rows() %T>% # combine all data.frames into one
   readr::write_tsv(path = "all_matches.tsv") %>% # save as side effect for you to inspect if you want
   #filter(matchtype == "EXACT" & status == "ACCEPTED") %>% # get only accepted and matched names
-  filter(class == "Insecta") %>% # remove anything that might have matched to a non-plant
+  filter(class == "Insecta") %>% # remove anything that might have matched to a non-insect
   pull(usagekey) # get the gbif taxonkeys
 
 # gbif_taxon_keys should be a long vector like this c(2977832,2977901,2977966,2977835,2977863)
