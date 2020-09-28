@@ -24,6 +24,7 @@ library(reshape2)
 # stats
 library(vegan)
 library(ade4)
+library(iNEXT)
 
 # visualisation
 library(ggplot2)
@@ -32,6 +33,9 @@ library(viridis)
 library(ggpubr)
 library(grid)
 library(gridExtra)
+library(jpeg)
+library(gtable)
+library(ggimage)
 
 ### colour scheme ##################
 landuseCols <- c("#CC79A7", "#E69F00", "#56B4E9", "#009E73") # colour friendly, ordered by land cover 
@@ -147,7 +151,7 @@ mapplot <- denmark %>%
           fill="white", colour = "black") + 
   coord_sf() + 
   geom_point(data = landuse.map, 
-             aes(x=lat, y = long, colour = "darkgrey"), size=4, show.legend = F) + theme_void() + scale_colour_manual(values = "deepskyblue1") + scalebar(denmark, dist = 25, dist_unit = "km", transform = T, model = "WGS84", st.size = 3) + labs(subtitle = "A") + north(denmark, symbol = 4, scale = 0.07) + theme(plot.subtitle = element_text(face = "bold", size = 20), plot.margin = margin(0, 0, 0, 0, "cm")) + panel_border()
+             aes(x=lat, y = long, colour = "darkgrey"), size=4, show.legend = F) + theme_void() + scale_colour_manual(values = "darkgrey") + scalebar(denmark, dist = 25, dist_unit = "km", transform = T, model = "WGS84", st.size = 3) + labs(subtitle = "A") + north(denmark, symbol = 4, scale = 0.07) + theme(plot.subtitle = element_text(face = "bold", size = 20), plot.margin = margin(0, 0, 0, 0, "cm")) + panel_border()
 
 #ggsave("plots/Sampling_map_DK.png", height = 10) # remember to increase DPI for publication
 
@@ -157,6 +161,9 @@ length(unique(data$RouteID))
 
 # how many samples
 length(unique(data$SampleID))
+
+# how many pilots?
+length(unique(data$PilotID))
 
 ### insect order ############
 taxon <- dplyr::select(taxonomy, "order") # or choose other taxonomic levels (but remember morphology only has order level for all individuals)
@@ -290,6 +297,7 @@ setdiff(dkarter$order, longdata$order)
 c <- ggplot(ordercomp, aes(origin, value))
 stacked_plot <- c + geom_bar(stat = "identity", aes(fill = order), show.legend = T, position = "fill") + labs(x = "", y = "Relative abundance", fill = "Insect order", subtitle = "A") + theme_classic2() + scale_fill_manual(values = c("red", viridis::viridis(20))) + theme(title = element_text(), legend.position = "bottom",axis.text.x = element_text(size = 8), axis.text.y = element_text(size = 8)) + guides(fill = guide_legend(nrow = 2))# position = "fill"in geom_bar gives relative
 
+
 addSmallLegend <- function(myPlot, pointSize = 1, textSize = 7, spaceLegend = 0.7) {
   myPlot +
     guides(shape = guide_legend(override.aes = list(size = pointSize)),
@@ -413,73 +421,118 @@ setdiff(dkflies$`Videnskabeligt navn`, flies$species)
 otus <- otus %>% column_to_rownames(var = "otuid")
 
 ## Accumulation model
-pool <- poolaccum(otus, permutations = 1000)
+
+#Data has species as rows and sites as columns, but we need the opposite. Thus, transpose the original data
+otusT <- t(otus)
+#get richness estimators (for each sample, cumulative)
+pool <- poolaccum(otusT, permutations = 100)
 plot(pool)
 
-# extract data for ggplot 
-accdata <- summary(pool, display = "chao")
-data_plot <- as_tibble(accdata[["chao"]])
+# rarefaction curve
+#build the species accumulation curve & rarefaction curve (expected)
+otus.specaccum <- specaccum(otusT,method = "exact", permutations = 100) 
+#plot the curve with some predefined settings
+plot(otus.specaccum,ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue")
 
-acummulation_plot <- data_plot %>% ggplot(aes(N, Chao)) +
-  geom_line(aes(color = "black"), size = 2) + theme_minimal() + scale_colour_manual(values = "darkgrey") + theme(
+#creating a dataframe for ggplot2
+data_specaccum <- data.frame(Sites=otus.specaccum$sites, Richness=otus.specaccum$richness, SD=otus.specaccum$sd)
+
+ggplot() +
+  geom_point(data=data_specaccum, aes(x=Sites, y=Richness)) +
+  geom_line(data=data_specaccum, aes(x=Sites, y=Richness)) +
+  geom_ribbon(data=data_specaccum ,aes(x=Sites, ymin=(Richness-2*SD),ymax=(Richness+2*SD)),alpha=0.2)
+
+# plot more pretty
+carnet <- png::readPNG("plots/car.png")
+
+# test#
+g <- rasterGrob(carnet, width=unit(80,"lines"), height=unit(60,"lines"), interpolate = T)
+
+# the correct image (unstretched)
+acummulation_plot <- data_specaccum %>% ggplot(aes(Sites, Richness))  +
+  annotation_custom(g, xmin =0, xmax=638, ymin=0, ymax=5000) + geom_line(aes(color = "black"), size = 2, show.legend = F) + 
+  xlim(c(0,638)) +ylim(c(0,5000)) + theme_classic() + scale_colour_manual(values = "black") + geom_ribbon(
+    aes(
+      ymin = Richness-SD,
+      ymax = Richness+SD
+    ),
+    linetype = 2,
+    alpha = 0.2,
+    show.legend = F
+  ) + labs(
+    x = "Number of samples",
+    y = "ASV richness",
+    subtitle = "C"
+  ) + theme(
     plot.subtitle = element_text(size = 20, face = "bold"),
     legend.title = element_blank(),
     legend.text = element_text(size = 8),
     legend.position = "none", plot.margin = margin(0, 0, 0, 0, "cm")
-  ) + geom_ribbon(
-        aes(
-          ymin = Chao-Std.Dev,
-          ymax = Chao+Std.Dev
-        ),
-        linetype = 2,
-        alpha = 0.2,
-        show.legend = F
-      ) + labs(
-        x = "Number of samples",
-        y = "Estimated Richness (Chao)",
-        subtitle = "C"
-      ) + scale_x_continuous(limits = c(0, 1000)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) + scale_fill_manual(values = "lightgrey")
+  ) + scale_fill_manual(values = "black")
 
-acummulation_plot_zoom <-  data_plot %>% ggplot(aes(N, Chao)) +
-  geom_line(aes(color = "black"), size = 2) + theme_minimal_grid() + scale_colour_manual(values = "darkgrey") + theme(
+
+ggsave('plots/test.png', height=4, width = 5, units = 'in')
+
+# wrong plot (stretched)
+acummulation_plot <- data_specaccum %>% ggplot(aes(Sites, Richness)) + scale_x_continuous(limits = c(0, 700)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) +
+  annotation_custom(rasterGrob(carnet, 
+                               width = unit(1,"npc"), 
+                               height = unit(1,"npc")), 
+                    -Inf, Inf, -Inf, Inf)  +
+  geom_line(aes(color = "black"), size = 2, show.legend = F) + theme_classic() + scale_colour_manual(values = "darkgrey") + geom_ribbon(
+    aes(
+      ymin = Richness-SD,
+      ymax = Richness+SD
+    ),
+    linetype = 2,
+    alpha = 0.2,
+    show.legend = F
+  ) + labs(
+    x = "Number of samples",
+    y = "ASV richness",
+    subtitle = "C"
+  ) + theme(
     plot.subtitle = element_text(size = 20, face = "bold"),
     legend.title = element_blank(),
     legend.text = element_text(size = 8),
-    axis.text.x = element_text(size = 8),
-    axis.text.y = element_text(size = 8),
-    legend.position = "none"
-  ) + scale_x_continuous(
-    limits = c(0, 100)) + geom_ribbon(
-        aes(
-          ymin = Chao-Std.Dev,
-          ymax = Chao+Std.Dev
-        ),
-        linetype = 2,
-        alpha = 0.2,
-        show.legend = F
-      ) + scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) + labs(
-        x = "",
-        y = ""
-        #subtitle = "B",
-      ) + scale_fill_manual(values = "lightgrey") + guides(colour = guide_legend(nrow = 1)) + theme(panel.background = element_rect(fill = "white"), plot.margin = margin(0, 0, 0, 0, "cm"), panel.border = element_rect(colour = "darkgrey"))
+    legend.position = "none", plot.margin = margin(0, 0, 0, 0, "cm")
+  ) + scale_fill_manual(values = "lightgrey")
 
-acummulation_plot
-acummulation_plot_zoom
+#build a expected curve (randomization for boxplot comparison)
+#otus.specaccum.rand <- specaccum(otusT, "random")
+#plot both curves ("observed" vs "randomized")
+#plot(otus.specaccum,ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue")
+#boxplot(otus.specaccum.rand, col="yellow", add=TRUE, pch="+")
 
-b <- acummulation_plot + annotation_custom(ggplotGrob(acummulation_plot_zoom), xmin = 500, xmax = 1000, ymin = -600, ymax = 250)
+# iNEXT visualisation
+#Sum abundances for the car net; i.e. consider the car net data as a single site with spp abundances (summed over the sampling days)
+#otus.sum <- rowSums(otusT)
+
+#apply `iNEXT` main function
+#otus.sum.inext <- iNEXT(otus.sum,datatype = "abundance")
+#look at the data
+#otus.sum.inext
+#plot the results
+#ggiNEXT(otus.sum.inext, se = TRUE)
+
+# extract data for ggplot 
+accdata <- summary(pool, display = "chao")
+observed <- summary(pool, display = "S")
+data_plot <- as_tibble(accdata[["chao"]])
+observed_plot <- as_tibble(observed[["S"]])
 
 #ggsave("plots/zoom_accumulation_chao1.png")
 
-library(gtable)
 g1 <- ggplotGrob(mapplot)
 g2 <- ggplotGrob(small_leg_plot)
-g3 <- ggplotGrob(b)
+g3 <- ggplotGrob(acummulation_plot)
 g <- rbind(g1, g2, g3, size = "first")
 g$widths <- unit.pmax(g1$widths, g2$widths, g3$widths)
 grid.newpage()
 grid.draw(g)
 
-ggsave('plots/g_test.tiff', plot = g, width=300,height=600, units = "mm", dpi=300)
+ggsave('plots/fig1.tiff', plot = g, width=500,height=700, units = "mm", dpi=300)
+
 
 #figure1 <- ggarrange(mapplot, small_leg_plot, b, ncol = 1, align = "v")
 #save_plot("plots/fig1_relabun_estimaterich.png", figure1, base_height = 10, base_width = 8)
