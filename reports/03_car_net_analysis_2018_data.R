@@ -1,6 +1,7 @@
 
 # all DK 2018 data with fwh primer
 # car net analysis
+# data input from Insect Diversity Manuscript 
 
 ### load libraries ################
 # importing and data wrangling
@@ -26,6 +27,7 @@ library(reshape2)
 library(vegan)
 library(ade4)
 library(iNEXT)
+library(phyloseq)
 
 # visualisation
 library(ggplot2)
@@ -39,51 +41,35 @@ library(gtable)
 library(ggimage)
 
 ### colour scheme ##################
-landuseCols <- c("#CC79A7", "#E69F00", "#56B4E9", "#009E73") # colour friendly, ordered by land cover 
-landuseOrder <- c("Urban","Farmland","Bog","Forest")
+iwanthue_19 <- palette(c(rgb(255,75,203, maxColorValue=255),
+                         rgb(35,124,0, maxColorValue=255),
+                         rgb(233,69,247, maxColorValue=255),
+                         rgb(77,108,0, maxColorValue=255),
+                         rgb(52,102,255, maxColorValue=255),
+                         rgb(216,141,0, maxColorValue=255),
+                         rgb(0,48,187, maxColorValue=255),
+                         rgb(236,86,0, maxColorValue=255),
+                         rgb(1,82,175, maxColorValue=255),
+                         rgb(255,70,95, maxColorValue=255),
+                         rgb(1,130,77, maxColorValue=255),
+                         rgb(237,129,250, maxColorValue=255),
+                         rgb(172,175,111, maxColorValue=255),
+                         rgb(187,154,251, maxColorValue=255),
+                         rgb(121,65,0, maxColorValue=255),
+                         rgb(138,170,243, maxColorValue=255),
+                         rgb(134,0,80, maxColorValue=255),
+                         rgb(214,140,143, maxColorValue=255),
+                         rgb(255,103,168, maxColorValue=255)))
 
 ### load data #####################
-asvs <- read.delim("cleaned-data/DK_asvtable.txt", sep="\t")
-data <- read.delim("cleaned-data/DK_rough_landuse_biomass.txt",sep=" ")
-taxonomy <- read.delim("cleaned-data/DK_taxonomy.txt",sep="\t")
+asvs <- read.delim("cleaned-data/DK_asvtable_2018_data.txt", sep="\t")
+data <- read.delim("cleaned-data/DK_metadata_2018_sequenced.txt",sep="\t")
+#taxonomy_filtered <- read.delim("cleaned-data/DK_taxonomy.txt",sep="\t")
+taxonomy_insects <- read.delim("cleaned-data/DK_taxonomy_Insecta.txt",sep="\t")
+taxonomy_insects99 <- read.delim("cleaned-data/DK_taxonomy_Insecta_99.txt",sep="\t")
 
 # load centroid coordinates for each route
 coords <- read.delim("cleaned-data/DK_ruter2018_pkt_koordinater.txt")
-
-### aligning data for analysis ###################
-names(asvs) = gsub(pattern = "X*", replacement = "", x = names(asvs)) # remove the Xs that have emerged in the column headers that are numerical
-asvs <- asvs[, grepl("IM18_*", names(asvs))] # only keep Dnaish samples from 2018 - be aware this removes blanks and negatives as well
-names(asvs)
-
-keep <- data$PCRID
-asvs <- asvs[, (names(asvs) %in% keep)] # subset asvtable to only contain samples with metadata
-
-keep <- names(asvs)
-data <- data %>% filter(PCRID %in% keep)
-
-# do all samples have seuqnces?
-colSums(asvs) # yes
-#asvs <- asvs[,colSums(asvs) > 0]
-
-# remove empty asvs
-rowSums(asvs)
-asvs <- asvs[rowSums(asvs) > 0, ]
-
-# remove the asvs from the taxonomy
-keep <- rownames(asvs)
-taxonomy <- taxonomy[rownames(taxonomy) %in% keep, ]
-
-# rmeove asvs that does not fit with taxonomy of class = insecta, 99% identity score threshold etc
-keep <- rownames(taxonomy)
-asvs <- asvs[rownames(asvs) %in% keep, ]
-
-# do all samples have seuqnces?
-colSums(asvs) # no
-asvs <- asvs[,colSums(asvs) > 0]
-
-# subset data to the samples with reads
-keep <- colnames(asvs)
-data <- data %>% filter(PCRID %in% keep)
 
 ### standardize data input #########
 
@@ -137,7 +123,7 @@ dist.location <- spTransform(lat.long.df, CRS("+init=epsg:4326"))
 dist.location
 
 landuse.map <- 
-  data.frame(Landuse = data$roughLand_use,
+  data.frame(Landuse = data$LandUSeType,
              lat = dist.location$data.utm_x,
              long = dist.location$data.utm_y)
 
@@ -161,91 +147,19 @@ mapplot <- denmark %>%
 length(unique(data$RouteID))
 
 # how many samples
-length(unique(data$SampleID))
+length(unique(data$SampleID)) # total/complete samples
+length(unique(data$SampleID_size)) # size sorted sample IDs
 
 # how many pilots?
-length(unique(data$PilotID))
+length(unique(data$PID))
 
-### insect order ############
-taxon <- dplyr::select(taxonomy, "order") # or choose other taxonomic levels (but remember morphology only has order level for all individuals)
-otus <- decostand(asvs, "pa") # make asvtable into presence absence
-
-# To be able to merge the OTU table with the taxonomy table, they need to have a common column to call
-otus <- rownames_to_column(otus, var = "otuid")
-taxon <- rownames_to_column(taxon, var = "otuid") # remeber to remake the column into rownames for both datasets if you need to
-
-test <- otus %>% column_to_rownames(var = "otuid") 
-min(colSums(test))
-
-taxon_data <- left_join(otus, taxon, by = "otuid")
-taxon_data <- column_to_rownames(taxon_data, var = "otuid")
-
-# working with reshape2 to wrangle data from wide to long format
-longdata <- melt(taxon_data) 
-#longdata <- longdata[longdata$value!=0,]
-longdata <- aggregate(. ~ order + variable, data = longdata, FUN = sum) # if values in the insect order column and the sample (variable) column are identical, then sum up how many unique otus there were in the sample from that insect order (richness)
-
-longdata2 <- longdata %>% group_by(order) %>% 
-  mutate(value_mean = mean(value)) %>% 
-  arrange(value_mean) %>% ungroup() 
-
-longdata2$order <- factor(longdata2$order, levels=unique(longdata2$order))
-str(longdata2)
-
-p1 <- ggplot(data = longdata2, aes(x = order , y = variable , fill = value)) 
-order_raster_plot <- p1 + geom_raster() + scale_fill_gradient(low="midnightblue", high="darkgoldenrod2") + 
-  labs(title = "A", fill = "Unique \nASVs") + xlab("Insect order") +
-  theme_minimal_grid() + theme(axis.text.x=element_text(size=9, angle=90, vjust=0.3, hjust = 1),
-                               axis.text.y=element_blank(),
-                               axis.ticks = element_blank(),
-                               axis.title.y = element_blank(),
-                               axis.title.x = element_text(face = "bold"),
-                               plot.title=element_text(face = "bold")) + scale_x_discrete(limits = rev(levels(longdata2$order)))
-
-# how frequent is the different orders detected
-sum(longdata2$value)
-aggregate(longdata2$value, by=list(order=longdata2$order), FUN=sum)
-23280/35646 # diptera
-4802/35646 # coleoptera
-2969/35646 #hymenoptera
-3111/35646 # hemiptera
-1014/35646 # Thysanoptera
-
-plot_data <- merge(data, longdata, by.x = "PCRID", by.y = "variable")
-plot_data <- as_tibble(plot_data)
-plot_data <- plot_data %>% dplyr::rename(richness = value)
-
-plot_data %>% dplyr::group_by(Time_band, order) %>% dplyr::summarise(richness = sum(richness)) # richness by time band and insect order
-
-# Psocodea needs to be renamed to Psocoptera
-plot_data <- plot_data%>% 
-  mutate(order = as.character(order)) %>% 
-  mutate(order = replace(order, order == 'Psocodea', 'Psocoptera'))
-
-custom_11 <- c("#771155", "#AA4488", "#EA6CC0", "#CC99BB", "#114477", "#4477AA","#1E78D2", "#77AADD", "#117777", "#44AAAA", "#3FE4E4")
-
-custom_other = c("#77CCCC", "#117744","#44AA77", "#1ED278", "#88CCAA", "#771122", "#AA4455", "#D21E2C","#DD7788","#777711", "#AAAA44", "#D2D21E", "#DDDD77","#774411", "#AA7744", "#D2781E", "#DDAA77")
-
-hist(log(plot_data$richness)) # non-normal and log and sqrt does not resolve this
-
-str(plot_data)
-
-# Stacked bar chart of ASV richness
-l <- ggplot(plot_data, aes(Time_band, richness))
-s <- ggplot(plot_data, aes(SampleID, richness))
-
-p1 <- l + geom_bar(stat = "identity", aes(fill = order), show.legend = T, position = "fill") + labs(x = "Time band", y = "", fill = "Insect order", title = "B") + theme_classic2() + scale_fill_manual(values = c("red", viridis::viridis(15))) + theme(title = element_text(face = "bold")) + guides(fill = guide_legend(ncol = 6))
-
-p2 <- s + geom_bar(stat = "identity", aes(fill = order), show.legend = F, position = "fill") + labs(x = "Sample", y = "", fill = "Insect order", title = "C") + theme_classic2() + scale_fill_manual(values = c("red", viridis::viridis(15))) + theme(axis.text.x = element_blank(), title = element_text(face = "bold"), axis.ticks.x = element_blank())
-
-figure <- ggarrange(p1,p2, common.legend = T, legend = "bottom", nrow = 2, align = "hv")
-
-# Annotate the figure by adding a common labels
-fig1 <- annotate_figure(figure,
-                        left = text_grob("Relative richness", rot = 90, face = "bold")
-)
-
-save_plot("plots/fig1_richness_landcover_timeband_routes.png", fig1, base_height = 12, base_width = 10)
+# How many unique in each taxonomic level?
+taxonomy <- taxonomy_insects
+taxonomy %>% summarise_all(n_distinct) # for order
+taxonomy %>% drop_na(family) %>% summarise_all(n_distinct) # family
+taxonomy %>% drop_na(genus) %>% summarise_all(n_distinct) # genus
+taxonomy %>% drop_na(species) %>% summarise_all(n_distinct) # species
+table(taxonomy$order)
 
 ### insect order - Denmark comparison ##############
 # load species data on insects from Denmark (downloaded manually, not updated since May 27th 2020)
@@ -258,46 +172,57 @@ dkarter <-  allearter %>% group_by(Orden) %>% dplyr::summarise(value = n()) # co
 remove <- c("Phthiraptera", "Siphonaptera", "Zygentoma", "Microcoryphia")
 dkarter <-  dkarter %>% dplyr::filter(!Orden %in% remove)
 
-# prepare study data
-taxon <- taxonomy %>% drop_na(species) # remove the obeservation were the ASV was not assigned species level taxonomy
-taxon <- dplyr::select(taxonomy, "order") # or choose other taxonomic levels (but remember morphology only has order level for all individuals)
-otus <- decostand(asvs, "pa") # make asvtable into presence absence
-
-# To be able to merge the OTU table with the taxonomy table, they need to have a common column to call
-otus <- rownames_to_column(otus, var = "otuid")
-taxon <- rownames_to_column(taxon, var = "otuid") # remeber to remake the column into rownames for both datasets if you need to
-
-taxon_data <- left_join(otus, taxon, by = "otuid")
-taxon_data <- column_to_rownames(taxon_data, var = "otuid")
-
-# working with reshape2 to wrangle data from wide to long format
-longdata <- melt(taxon_data) 
-longdata <- longdata[longdata$value!=0,] # remove zeros in this case
-longdata <- aggregate(. ~ order + variable, data = longdata, FUN = sum) # if values in the insect order column and the sample (variable) column are identical, then sum up how many unique otus there were in the
-
-# Psocodea needs to be renamed to Psocoptera
-longdata <- longdata%>% 
+### get summaries for the taxonomy assigned with different filters are rename Psocodea to Psocoptera ########
+allinsects <- taxonomy %>% group_by(order) %>% dplyr::summarise(value = n()) %>% 
+  mutate(order = as.character(order)) %>% 
+  mutate(order = replace(order, order == 'Psocodea', 'Psocoptera')) # count unique species in insect order for the data with filter: class = insecta
+insects99 <- taxonomy_insects99 %>% drop_na(order) %>% group_by(order) %>% dplyr::summarise(value = n()) %>% 
   mutate(order = as.character(order)) %>% 
   mutate(order = replace(order, order == 'Psocodea', 'Psocoptera'))
 
+# how many uniquely named species in the dataset?
+unique_species <- taxonomy_insects99 %>% distinct(species, .keep_all = T) %>% drop_na(species)
+uniquenames <- unique_species %>% drop_na(species) %>% group_by(order) %>% dplyr::summarise(value = n()) %>% 
+  mutate(order = as.character(order)) %>% 
+  mutate(order = replace(order, order == 'Psocodea', 'Psocoptera'))
+
+# apply filter column
+allinsects$filter <- "classInsecta"
+insects99$filter <- "classInsecta99"
+uniquenames$filter <- "uniquenames"
+
 # match columns prior to merge
-dkarter <- dkarter %>% rename("order" = Orden) # first rename column header
-dkarter$variable <- NA
-dkarter$origin <- "Denmark"
-longdata$origin <- "Car net"
+dkarter <- dkarter %>% dplyr::rename("order" = Orden) # first rename column header
+dkarter$filter <- "Denmark"
 
-str(longdata)
-dkarter <- dkarter %>% dplyr::select(order, variable, value, origin)
-
-ordercomp <- rbind(longdata, dkarter)
+# merge data for plotting
+ordercomp <- bind_rows(allinsects, insects99, uniquenames, dkarter)
 
 # which insect orders were not detected with the car net
-setdiff(dkarter$order, longdata$order)
+setdiff(dkarter$order, allinsects$order)
 
 ### plot stacked bar plot of insect orders ###########
-c <- ggplot(ordercomp, aes(origin, value))
-stacked_plot <- c + geom_bar(stat = "identity", aes(fill = order), show.legend = T, position = "fill") + labs(x = "", y = "Relative abundance", fill = "Insect order", subtitle = "A") + theme_classic2() + scale_fill_manual(values = c("red", viridis::viridis(20))) + theme(title = element_text(), legend.position = "bottom",axis.text.x = element_text(size = 8), axis.text.y = element_text(size = 8)) + guides(fill = guide_legend(nrow = 2))# position = "fill"in geom_bar gives relative
 
+plot <- ordercomp %>% mutate(filter = fct_relevel(filter, 
+                            "classInsecta", "classInsecta99", "uniquenames", "Denmark")) %>% ggplot(aes(filter, value))
+
+stacked_plot <-
+  plot + geom_bar(
+    stat = "identity",
+    aes(fill = order),
+    show.legend = T,
+    position = "fill"
+  ) + labs(
+    x = "",
+    y = "Relative abundance",
+    fill = "Insect order",
+    subtitle = "A"
+  ) + theme_classic2() + scale_fill_manual(values = iwanthue_19) + theme(
+    title = element_text(),
+    legend.position = "bottom",
+    axis.text.x = element_text(size = 8),
+    axis.text.y = element_text(size = 8)
+  ) + guides(fill = guide_legend(nrow = 2)) + scale_x_discrete(labels=c("classInsecta" = "class = Insecta", "classInsecta99" = "class = Insecta & match = >99%", "uniquenames" = "Unique names"))# position = "fill"in geom_bar gives relative
 
 addSmallLegend <- function(myPlot, pointSize = 1, textSize = 7, spaceLegend = 0.7) {
   myPlot +
@@ -308,25 +233,43 @@ addSmallLegend <- function(myPlot, pointSize = 1, textSize = 7, spaceLegend = 0.
           legend.key.size = unit(spaceLegend, "lines"), plot.margin = margin(0, 0, 0, 0, "cm"))
 }
 
-stacked_plot <- c + geom_bar(stat = "identity", aes(fill = order), show.legend = T, position = "fill") + labs(x = "", y = "Relative species richness", fill = "Insect order", subtitle = "B")  + theme_minimal() + scale_fill_manual(values = c("red", viridis::viridis(20))) + theme(plot.subtitle = element_text(size = 20, face = "bold"), legend.position = "bottom", plot.margin = margin(0, 0, 0, 0, "cm"), axis.text.x = element_text(size = 8),axis.text.y = element_text(size = 8)) + guides(fill = guide_legend(nrow = 3))# position = "fill"in geom_bar gives relative
+stacked_plot <-
+  plot + geom_bar(
+    stat = "identity",
+    aes(fill = order),
+    show.legend = T,
+    position = "fill"
+  ) + labs(
+    x = "",
+    y = "Relative species richness",
+    fill = "Insect order",
+    subtitle = "B"
+  )  + theme_minimal() + scale_fill_manual(values = iwanthue_19) + theme(
+    plot.subtitle = element_text(size = 20, face = "bold"),
+    legend.position = "bottom",
+    plot.margin = margin(0, 0, 0, 0, "cm"),
+    axis.text.x = element_text(size = 8),
+    axis.text.y = element_text(size = 8)
+  ) + guides(fill = guide_legend(nrow = 3)) + scale_x_discrete(
+    labels = c(
+      "classInsecta" = "class = Insecta",
+      "classInsecta99" = "class = Insecta & match = >99%",
+      "uniquenames" = "Unique names"
+    )
+  )# position = "fill"in geom_bar gives relative
 
 # Apply on original plot
 small_leg_plot <- addSmallLegend(stacked_plot)
 
-#le1 <- cowplot::get_legend(small_leg_plot)
-
-# + scale_fill_manual(values = c("red", viridis::viridis(20)))
-# + scale_fill_viridis_d(option = "plasma") 
-
 ### new species for DK? ###############
-# how many species were detected by the net and is not present in the Danish species database?
-newspecies <- setdiff(taxonomy$species, allearter$`Videnskabeligt navn`) # the first observation is NA, so 338 species not in the Danish database
+# how many species were detected by the net and is not present in the Danish species database? 
+newspecies <- setdiff(taxonomy_insects99$species, allearter$`Videnskabeligt navn`) 
 
 # comparison of car net and DK database
-newspeciesDK <- taxonomy %>% rownames_to_column(var = "ASVID") %>% filter(species %in% newspecies) 
+newspeciesDK <- taxonomy_insects99 %>% rownames_to_column(var = "ASVID") %>% filter(species %in% newspecies) 
 #write.table(newspeciesDK, file = "cleaned-data/newspecies_DK_alldata.txt", sep = "\t", row.names = F)
 #newspeciesDK <- newspeciesDK %>% column_to_rownames(var = "ASVID")
-newdistinct_species <- newspeciesDK %>% distinct(species, .keep_all = T)%>% drop_na(species)
+newdistinct_species <- newspeciesDK %>% distinct(species, .keep_all = T) %>% drop_na(species)
 newspeciesDK <- newspeciesDK %>% group_by(order, species) %>% distinct(species) %>% drop_na(species)
 #write.table(newspeciesDK, file = "cleaned-data/newspecies_DK.txt", sep = "\t", row.names = F)
 
@@ -375,8 +318,8 @@ occ_download(
   user=user,pwd=pwd,email=email
 ) # this generates a file for your user where the matches are
 
-gbif_query <- read.delim("raw-data/newspecies_DK.csv")
-gbif_query_scandi <- read.delim("raw-data/newspecies_scandi.csv")
+gbif_query <- read.delim("raw-data/0080813-200613084148143.csv") # GBIF.org (07 October 2020) GBIF Occurrence Download https://doi.org/10.15468/dl.2mker8 
+gbif_query_scandi <- read.delim("raw-data/0080815-200613084148143.csv") # GBIF.org (07 October 2020) GBIF Occurrence Download https://doi.org/10.15468/dl.zvumvk 
 
 #test <- gbif_query %>% distinct(species, .keep_all = T)
 
@@ -392,31 +335,16 @@ write.table(nooccurrence_scandi, file = "cleaned-data/nooccurrence_scandi.txt", 
 # which order does the new species belong to and what is the frequency 
 newspeciesDK %>%
   group_by(order) %>%
-  summarise(n = n()) %>%
-  mutate(freq = (n / sum(n))*100) # get the proportion in percent
+  dplyr::summarise(n = n()) %>%
+  dplyr::mutate(freq = (n / sum(n))*100) # get the proportion in percent
 
 allearter %>%
   group_by(Orden) %>%
-  summarise(n = n())
+  dplyr::summarise(n = n())
 
 taxonomy %>%
   group_by(order) %>%
   summarise(n = n())
-
-# Lepidoptera 
-(2590/18882)*100 # almost 14% of insects in DK are Lepidoptera
-butterfies <- taxonomy %>% filter(order == "Lepidoptera") %>% distinct(species)
-dkbutterflies <- allearter %>% filter(Orden == "Lepidoptera") %>% distinct(`Videnskabeligt navn`)
-setdiff(butterfies$species, dkbutterflies$`Videnskabeligt navn`) # all detected were already known in Denmark
-setdiff(dkbutterflies$`Videnskabeligt navn`, butterfies$species)
-(74/2590)*100 # we detected less than 3% of the known Lepidoptera in Denmark
-
-(5086/18882)*100 # almost 27% of insects in DK are flies
-flies <- taxonomy %>% filter(order == "Diptera") %>% distinct(species)
-dkflies <- allearter %>% filter(Orden == "Diptera") %>% distinct(`Videnskabeligt navn`)
-setdiff(flies$species, dkflies$`Videnskabeligt navn`) # 192 flies new to DK
-setdiff(dkflies$`Videnskabeligt navn`, flies$species)
-((2405-192)/5086)*100
 
 ### species accumulation curves #########
 otus <- otus %>% column_to_rownames(var = "otuid")
@@ -431,17 +359,14 @@ plot(pool)
 
 # rarefaction curve
 #build the species accumulation curve & rarefaction curve (expected)
-otus.specaccum <- specaccum(otusT,method = "exact", permutations = 100) 
+#otus.specaccum <- specaccum(otusT,method = "exact", permutations = 100) 
 #plot the curve with some predefined settings
-plot(otus.specaccum,ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue")
+#plot(otus.specaccum,ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue")
 
 #creating a dataframe for ggplot2
-data_specaccum <- data.frame(Sites=otus.specaccum$sites, Richness=otus.specaccum$richness, SD=otus.specaccum$sd)
+#data_specaccum <- data.frame(Sites=otus.specaccum$sites, Richness=otus.specaccum$richness, SD=otus.specaccum$sd)
 
-ggplot() +
-  geom_point(data=data_specaccum, aes(x=Sites, y=Richness)) +
-  geom_line(data=data_specaccum, aes(x=Sites, y=Richness)) +
-  geom_ribbon(data=data_specaccum ,aes(x=Sites, ymin=(Richness-2*SD),ymax=(Richness+2*SD)),alpha=0.2)
+#ggplot() + geom_point(data=data_specaccum, aes(x=Sites, y=Richness)) + geom_line(data=data_specaccum, aes(x=Sites, y=Richness)) + geom_ribbon(data=data_specaccum ,aes(x=Sites, ymin=(Richness-2*SD),ymax=(Richness+2*SD)),alpha=0.2)
 
 # plot more pretty
 carnet <- png::readPNG("plots/car.png")
@@ -449,55 +374,6 @@ carnet <- png::readPNG("plots/car.png")
 # test#
 g <- rasterGrob(carnet, width=unit(80,"lines"), height=unit(60,"lines"), interpolate = T)
 
-# the correct image (unstretched)
-acummulation_plot <- data_specaccum %>% ggplot(aes(Sites, Richness))  +
-  annotation_custom(g, xmin =0, xmax=638, ymin=0, ymax=5000) + geom_line(aes(color = "black"), size = 2, show.legend = F) + 
-  xlim(c(0,638)) +ylim(c(0,5000)) + theme_classic() + scale_colour_manual(values = "black") + geom_ribbon(
-    aes(
-      ymin = Richness-SD,
-      ymax = Richness+SD
-    ),
-    linetype = 2,
-    alpha = 0.2,
-    show.legend = F
-  ) + labs(
-    x = "Number of samples",
-    y = "ASV richness",
-    subtitle = "C"
-  ) + theme(
-    plot.subtitle = element_text(size = 20, face = "bold"),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 8),
-    legend.position = "none", plot.margin = margin(0, 0, 0, 0, "cm")
-  ) + scale_fill_manual(values = "black")
-
-
-ggsave('plots/test.png', height=4, width = 5, units = 'in')
-
-# wrong plot (stretched)
-acummulation_plot <- data_specaccum %>% ggplot(aes(Sites, Richness)) + scale_x_continuous(limits = c(0, 700)) + scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) +
-  annotation_custom(rasterGrob(carnet, 
-                               width = unit(1,"npc"), 
-                               height = unit(1,"npc")), 
-                    -Inf, Inf, -Inf, Inf)  +
-  geom_line(aes(color = "black"), size = 2, show.legend = F) + theme_classic() + scale_colour_manual(values = "darkgrey") + geom_ribbon(
-    aes(
-      ymin = Richness-SD,
-      ymax = Richness+SD
-    ),
-    linetype = 2,
-    alpha = 0.2,
-    show.legend = F
-  ) + labs(
-    x = "Number of samples",
-    y = "ASV richness",
-    subtitle = "C"
-  ) + theme(
-    plot.subtitle = element_text(size = 20, face = "bold"),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 8),
-    legend.position = "none", plot.margin = margin(0, 0, 0, 0, "cm")
-  ) + scale_fill_manual(values = "lightgrey")
 
 #build a expected curve (randomization for boxplot comparison)
 #otus.specaccum.rand <- specaccum(otusT, "random")
@@ -505,28 +381,69 @@ acummulation_plot <- data_specaccum %>% ggplot(aes(Sites, Richness)) + scale_x_c
 #plot(otus.specaccum,ci.type="poly", col="blue", lwd=2, ci.lty=0, ci.col="lightblue")
 #boxplot(otus.specaccum.rand, col="yellow", add=TRUE, pch="+")
 
-# iNEXT visualisation
-#Sum abundances for the car net; i.e. consider the car net data as a single site with spp abundances (summed over the sampling days)
-#otus.sum <- rowSums(otusT)
+### iNEXT visualisation ####
+
+otuspa <- iNEXT::as.incfreq(otus)# transform incidence raw data (a species by sites presence-absence matrix) to incidence frequencies data (iNEXT input format, a row-sum frequencies vector contains total number of sampling units)
+
+# set a series of sample sizes (m) for R/E computation
+t <- seq(1, 4000, by=50)
 
 #apply `iNEXT` main function
-#otus.sum.inext <- iNEXT(otus.sum,datatype = "abundance")
+otuspa.inext <- iNEXT(otuspa, q = c(0, 1, 2), datatype = "incidence_freq", size = t) # calculate for all three hill numbers
+otuspa.inext$DataInfo # summarizing data information, eturns basic data information including the reference sample size (n), observed species richness (S.obs), a sample coverage estimate (SC), and the first ten frequency counts (f1‐f10)
+otuspa.inext$iNextEst # showing diversity estimates along with related statistics for a series of rarefied and extrapolated samples
+otuspa.inext$AsyEst # showing asymptotic diversity estimates along with related statistics
+ChaoRichness(otuspa, datatype = "abundance", conf = 0.95)
 #look at the data
-#otus.sum.inext
+otuspa.inext
+
 #plot the results
-#ggiNEXT(otus.sum.inext, se = TRUE)
+# Sample‐size‐based R/E curves - plots diversity estimates with confidence intervals (if se=TRUE) as a function of sample size up to double the reference sample size, by default, or a user‐specified endpoint.
+plot.inext <-
+  ggiNEXT(
+    otuspa.inext,
+    se = TRUE,
+    type = 1,
+    color.var = "order",
+    grey = T
+  ) + theme_classic() + theme(
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    rect = element_rect(fill = "transparent"),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent"),
+    plot.subtitle = element_text(size = 20, face = "bold"),
+    legend.text = element_text(size = 8),
+    plot.margin = margin(0, 0, 0, 0, "cm")
+  ) + scale_fill_grey(start = 0, end = .4) +
+  scale_colour_grey(start = .2, end = .2) + scale_shape_discrete(labels = c("ASV richness", "Shannon diversity", "Simpson diversity")) + guides(fill = FALSE, colour = FALSE) + labs(x = "Number of samples", y = "Number of insect ASVs",subtitle = "C")
+
+#ggsave("plots/inext_accumulation.png", grid.draw(gList(rasterGrob(carnet, width = unit(1,"npc"), height = unit(1,"npc")), ggplotGrob(plot.inext))))
+
+grid.draw(gList(rasterGrob(carnet, width=unit(40,"lines"), height=unit(30,"lines"), interpolate = T), 
+                                  ggplotGrob(plot.inext)))
+
+# Sample completeness curves - plots the sample coverage with respect to sample size for the same range described in sample-size-based R/E curves
+ggiNEXT(otuspa.inext, se = T, type=2, color.var="order") + theme_cowplot()
+
+# Coverage‐based R/E curves - plots the diversity estimates with confidence intervals (if se=TRUE) as a function of sample coverage up to the maximum coverage obtained from the maximum size described in sample-size-based R/E curves
+ggiNEXT(otuspa.inext, se = TRUE, type=3, color.var ="order") + theme_cowplot()
+
 
 # extract data for ggplot 
-accdata <- summary(pool, display = "chao")
-observed <- summary(pool, display = "S")
-data_plot <- as_tibble(accdata[["chao"]])
-observed_plot <- as_tibble(observed[["S"]])
+#accdata <- summary(pool, display = "chao")
+#observed <- summary(pool, display = "S")
+#data_plot <- as_tibble(accdata[["chao"]])
+#observed_plot <- as_tibble(observed[["S"]])
 
 #ggsave("plots/zoom_accumulation_chao1.png")
 
+test <- as_ggplot(gList(rasterGrob(carnet, width=unit(50,"lines"), height=unit(40,"lines"), interpolate = T), ggplotGrob(plot.inext)))
+
 g1 <- ggplotGrob(mapplot)
 g2 <- ggplotGrob(small_leg_plot)
-g3 <- ggplotGrob(acummulation_plot)
+g3 <- ggplotGrob(test)
+#g3 <- ggplotGrob(acummulation_plot)
 g <- rbind(g1, g2, g3, size = "first")
 g$widths <- unit.pmax(g1$widths, g2$widths, g3$widths)
 grid.newpage()
@@ -545,7 +462,7 @@ length(unique(taxonomy$family))
 length(unique(taxonomy$genus))
 length(unique(taxonomy$species))
 
-# in the Dnaish species list
+# in the Danish species list
 allearter %>% dplyr::filter(!Orden %in% remove) %>% group_by(Orden) %>% dplyr::summarise(value = n()) # count how many species are known for each order
 dkarter_z <- allearter %>% dplyr::filter(!Orden %in% remove) # remove non-flying insect orders
 length(unique(dkarter_z$Orden))
@@ -559,17 +476,17 @@ res <- prop.test(x = c(15, 19), n = c(19, 19))
 res
 
 # family
-res <- prop.test(x = c(215, 485), n = c(485, 485))
+res <- prop.test(x = c(241, 485), n = c(485, 485), alternative = "less")
 # Printing the results
 res
 
 # genus
-res <- prop.test(x = c(998, 5467), n = c(5467, 5467))
+res <- prop.test(x = c(1274, 5467), n = c(5467, 5467), alternative = "less")
 # Printing the results
 res
 
 # species
-res <- prop.test(x = c(1607, 18791), n = c(18791, 18791))
+res <- prop.test(x = c(2115, 18791), n = c(18791, 18791), alternative = "less")
 # Printing the results
 res
 
@@ -584,68 +501,204 @@ taxonomy %>%
 
 # Is the proportion of insect orders car nets equal to the proportion of insect orders in Denmark
 # Coleoptera
-res <- prop.test(x = c(643, 3866), n = c(4546, 18882))
+res <- prop.test(x = c(1014, 3866), n = c(8172, 18791))
 # Printing the results
 res 
 
 # Dermaptera
-res <- prop.test(x = c(1, 6), n = c(4546, 18882))
+res <- prop.test(x = c(1, 6), n = c(8172, 18791))
 # Printing the results
 res 
 
 # Diptera
-res <- prop.test(x = c(2405, 5086), n = c(4546, 18882))
+res <- prop.test(x = c(4828, 5086), n = c(8172, 18791))
 # Printing the results
 res 
 
 # Ephemeroptera
-res <- prop.test(x = c(11, 43), n = c(4546, 18882))
+res <- prop.test(x = c(12, 43), n = c(8172, 18791))
 # Printing the results
 res 
 
 # Hemiptera  
-res <- prop.test(x = c(410, 1495), n = c(4546, 18882))
+res <- prop.test(x = c(656, 1495), n = c(8172, 18791))
 # Printing the results
 res 
 
 # Hymenoptera     
-res <- prop.test(x = c(855, 5150), n = c(4546, 18882))
+res <- prop.test(x = c(1358, 5150), n = c(8172, 18791))
 # Printing the results
 res 
 
 # Lepidoptera      
-res <- prop.test(x = c(98, 2590), n = c(4546, 18882))
+res <- prop.test(x = c(129, 2590), n = c(8172, 18791))
 # Printing the results
 res 
+
 # Mecoptera         
-res <- prop.test(x = c(2, 4), n = c(4546, 18882))
+res <- prop.test(x = c(3, 4), n = c(8172, 18791))
 # Printing the results
 res 
+
 # Neuroptera        
-res <- prop.test(x = c(2, 62), n = c(4546, 18882))
+res <- prop.test(x = c(2, 62), n = c(8172, 18791))
 # Printing the results
 res 
+
 # Odonata           
-res <- prop.test(x = c(5, 60), n = c(4546, 18882))
+res <- prop.test(x = c(9, 60), n = c(8172, 18791))
 # Printing the results
 res 
 # Orthoptera        
-res <- prop.test(x = c(4, 38), n = c(4546, 18882))
+res <- prop.test(x = c(10, 38), n = c(8172, 18791))
 # Printing the results
 res 
 # Plecoptera        
-res <- prop.test(x = c(2, 25), n = c(4546, 18882))
+res <- prop.test(x = c(3, 25), n = c(8172, 18791))
 # Printing the results
 res 
 # Psocoptera (Psocodea)
-res <- prop.test(x = c(40, 62), n = c(4546, 18882))
+res <- prop.test(x = c(49, 62), n = c(8172, 18791))
 # Printing the results
 res 
 # Thysanoptera     
-res <- prop.test(x = c(60, 113), n = c(4546, 18882))
+res <- prop.test(x = c(89, 113), n = c(8172, 18791))
 # Printing the results
 res 
 # Trichoptera   
-res <- prop.test(x = c(8, 172), n = c(4546, 18882))
+res <- prop.test(x = c(9, 172), n = c(8172, 18791))
 # Printing the results
 res 
+
+
+### phyloseq #############
+OTU = otu_table(asvs, taxa_are_rows = TRUE)
+tax <- taxonomy %>% rownames_to_column(var = "id") %>% dplyr::select(id, kingdom, phylum, class, order, family, genus, species) %>% column_to_rownames(var = "id")
+tax <- as.matrix(tax, rownames.force = TRUE) # force the table into a matrix fromat so a phyloseq tax object can be created
+TAX = tax_table(tax)
+OTU
+TAX
+
+test <- data %>% dplyr::select(PCRID, Date, Time_band, roughLand_use, Wind, Temperature) %>% column_to_rownames(var = "PCRID")
+metadata <- sample_data(test) # create the phyloseq sample data object, needs to be reordered to fit with PCRIDs as row names
+
+# now we can create a phyloseq object
+ps <- phyloseq(OTU, TAX, metadata)
+ps
+
+# Make a data frame with a column for the read counts of each sample
+sample_sum_df <- data.frame(sum = sample_sums(ps))
+
+# Histogram of sample read counts
+ggplot(sample_sum_df, aes(x = sum)) + 
+  geom_histogram(color = "black", fill = "indianred", binwidth = 2500) +
+  ggtitle("Distribution of sample sequencing depth") + 
+  xlab("Read counts") +
+  theme(axis.title.y = element_blank())
+
+# mean, max and min of sample read counts
+smin <- min(sample_sums(ps))
+smean <- mean(sample_sums(ps))
+smax <- max(sample_sums(ps))
+
+# melt to long format (for ggploting) 
+# prune out order below 2% in each sample
+
+ps_order <- ps %>%
+  tax_glom(taxrank = "order") %>%                     # agglomerate at order level
+  transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
+  psmelt() %>%                                         # Melt to long format
+  filter(Abundance > 0.01) %>%                         # Filter out low abundance taxa
+  arrange(order)                                      # Sort data frame alphabetically by order
+
+ps_family <- ps %>%
+  tax_glom(taxrank = "family") %>%                     # agglomerate at family level
+  transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
+  psmelt() %>%                                         # Melt to long format
+  filter(Abundance > 0.02) %>%                         # Filter out low abundance taxa
+  arrange(family)                                      # Sort data frame alphabetically by family
+
+
+# Set colors for plotting
+phylum_colors <- c(
+  "#CBD588", "#5F7FC7", "orange","#DA5724", "#508578", "#CD9BCD",
+  "#AD6F3B", "#673770","#D14285", "#652926", "#C84248", 
+  "#8569D5", "#5E738F","#D1A33D", "#8A7C64", "#599861"
+)
+
+# Plot order
+ggplot(ps_order, aes(x = kingdom, y = Abundance, fill = order)) + 
+  facet_grid(roughLand_use~.) +
+  geom_bar(stat = "identity") +
+  # Remove x axis title
+  theme(axis.title.x = element_blank()) + 
+  #
+  guides(fill = guide_legend(reverse = TRUE, keywidth = 1, keyheight = 1)) +
+  ylab("Relative Abundance (Order > 1 %) \n") + ggtitle("Order Composition for sampling method") + scale_fill_manual(values = phylum_colors) 
+
+# Plot family - here we add position fill to geom_bar() to make it look like everything adds up. Before each sample type did not go up to one - this reflects the rare phyla that were removed 
+ggplot(ps_family, aes(x = kingdom, y = Abundance, fill = family)) + 
+  #facet_grid(habitat~.) +
+  geom_bar(stat = "identity", position = "fill") +
+  # Remove x axis title
+  theme(axis.title.x = element_blank()) + 
+  #
+  guides(fill = guide_legend(reverse = TRUE, keywidth = 1, keyheight = 1)) +
+  ylab("Relative Abundance (Family > 2%) \n") +
+  ggtitle("Family Composition for sampling method")
+
+# Normalization 
+# Scales reads by 
+# 1) taking proportions,
+# 2) multiplying by a given library size of n
+# 3) rounding down
+scale_reads <- function(physeq, n) {
+  physeq.scale <-
+    transform_sample_counts(physeq, function(x) {
+      (n * x/sum(x))
+    })
+  otu_table(physeq.scale) <- floor(otu_table(physeq.scale))
+  physeq.scale <- prune_taxa(taxa_sums(physeq.scale) > 0, physeq.scale)
+  return(physeq.scale)
+}
+
+# Scale reads to even depth 
+ps_scale <- scale_reads(ps, 60000) # I've chosen 60.000 reads, see smean
+
+# Let's try an NMDS instead. For NMDS plots it's important to set a seed since the starting positions of samples in the alogrithm is random.
+
+# Important: if you calculate your bray-curtis distance metric "in-line" it will perform a square root transformation and Wisconsin double standardization. If you don't want this, you can calculate your bray-curtis distance separately
+
+set.seed(41)
+
+# Ordinate
+ps_nmds <- ordinate(
+  physeq = ps_scale, 
+  method = "NMDS", 
+  distance = "bray"
+)
+
+scores <- as.data.frame(scores(ps_nmds)) # get names for nmds by creating a data frame
+
+# Plot 
+plot_ordination(
+  physeq = ps_scale,
+  ordination = ps_nmds,
+  title = "NMDS of Insect Communities by insect order (normalised data)"
+) +
+  geom_point() + theme_classic2() +
+  scale_size_continuous(range = c(3, 9)) + labs(size = "Insect abundance", colour = "Sampling method") +stat_ellipse(aes(x = scores$NMDS1, y = scores$NMDS2)) + guides(color = guide_legend(override.aes = list(linetype = 0)))
+
+library(ape)
+random_tree = rtree(ntaxa(ps), rooted = TRUE, tip.label = taxa_names(ps))
+plot(random_tree)
+
+physeq = merge_phyloseq(ps, random_tree)
+
+# Ordination plots - PCoA on Unifrac distances - takes abundance & phylogeny into account
+ordu = ordinate(physeq, "PCoA", "unifrac", weighted = TRUE)
+plot_ordination(physeq, ordu, color = "roughLand_use")
+p = plot_ordination(physeq, ordu, color = "roughLand_use", shape = "Time_band")
+p = p + geom_point(size = 7, alpha = 0.75)
+p = p + scale_color_brewer(type = "qual", palette = "Paired")
+p + ggtitle("MDS/PCoA on weighted-UniFrac distance")
