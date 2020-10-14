@@ -573,13 +573,13 @@ res
 
 ### phyloseq #############
 OTU = otu_table(asvs, taxa_are_rows = TRUE)
-tax <- taxonomy %>% rownames_to_column(var = "id") %>% dplyr::select(id, kingdom, phylum, class, order, family, genus, species) %>% column_to_rownames(var = "id")
+tax <- taxonomy_insects %>% rownames_to_column(var = "id") %>% dplyr::select(id, kingdom, phylum, class, order, family, genus, species) %>% column_to_rownames(var = "id")
 tax <- as.matrix(tax, rownames.force = TRUE) # force the table into a matrix fromat so a phyloseq tax object can be created
 TAX = tax_table(tax)
 OTU
 TAX
 
-test <- data %>% dplyr::select(PCRID, Date, Time_band, roughLand_use, Wind, Temperature) %>% column_to_rownames(var = "PCRID")
+test <- data %>% dplyr::select(PCRID, Date, Wind, Temperature) %>% column_to_rownames(var = "PCRID")
 metadata <- sample_data(test) # create the phyloseq sample data object, needs to be reordered to fit with PCRIDs as row names
 
 # now we can create a phyloseq object
@@ -589,116 +589,58 @@ ps
 # Make a data frame with a column for the read counts of each sample
 sample_sum_df <- data.frame(sum = sample_sums(ps))
 
-# Histogram of sample read counts
-ggplot(sample_sum_df, aes(x = sum)) + 
-  geom_histogram(color = "black", fill = "indianred", binwidth = 2500) +
-  ggtitle("Distribution of sample sequencing depth") + 
-  xlab("Read counts") +
-  theme(axis.title.y = element_blank())
-
 # mean, max and min of sample read counts
 smin <- min(sample_sums(ps))
 smean <- mean(sample_sums(ps))
 smax <- max(sample_sums(ps))
 
-# melt to long format (for ggploting) 
-# prune out order below 2% in each sample
+### RAM analysis ######
 
-ps_order <- ps %>%
-  tax_glom(taxrank = "order") %>%                     # agglomerate at order level
-  transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
-  psmelt() %>%                                         # Melt to long format
-  filter(Abundance > 0.01) %>%                         # Filter out low abundance taxa
-  arrange(order)                                      # Sort data frame alphabetically by order
+library(RAM)
 
-ps_family <- ps %>%
-  tax_glom(taxrank = "family") %>%                     # agglomerate at family level
-  transform_sample_counts(function(x) {x/sum(x)} ) %>% # Transform to rel. abundance
-  psmelt() %>%                                         # Melt to long format
-  filter(Abundance > 0.02) %>%                         # Filter out low abundance taxa
-  arrange(family)                                      # Sort data frame alphabetically by family
+# To be able to merge the OTU table with the taxonomy table, they need to have a common column to call
+otus <- rownames_to_column(testram, var = "otuid")
+taxonomy_insects <- read.delim("cleaned-data/DK_taxonomy_Insecta.txt",sep="\t")
+taxonomy <- rownames_to_column(taxonomy_insects, var = "otuid") # remeber to remake the column into rownames for both datasets if you need to
 
+# format taxonomy for RAM
+taxonomy$kingdom <- paste0("k__", taxonomy$kingdom)
+taxonomy$phylum <- paste0("; p__", taxonomy$phylum)
+taxonomy$class <- paste0("; c__", taxonomy$class)
+taxonomy$order <- paste0("; o__", taxonomy$order)
+taxonomy$family <- paste0("; f__", taxonomy$family)
+taxonomy$genus <- paste0("; g__", taxonomy$genus)
+taxonomy$species <- paste0("; s__", taxonomy$species)
 
-# Set colors for plotting
-phylum_colors <- c(
-  "#CBD588", "#5F7FC7", "orange","#DA5724", "#508578", "#CD9BCD",
-  "#AD6F3B", "#673770","#D14285", "#652926", "#C84248", 
-  "#8569D5", "#5E738F","#D1A33D", "#8A7C64", "#599861"
-)
+merged_taxonomy <- within(taxonomy, taxonomy <- paste(kingdom,phylum,class, order, family, genus, species))
+merged_taxonomy <- merged_taxonomy %>% dplyr::select(otuid, taxonomy)
 
-# Plot order
-ggplot(ps_order, aes(x = kingdom, y = Abundance, fill = order)) + 
-  facet_grid(roughLand_use~.) +
-  geom_bar(stat = "identity") +
-  # Remove x axis title
-  theme(axis.title.x = element_blank()) + 
-  #
-  guides(fill = guide_legend(reverse = TRUE, keywidth = 1, keyheight = 1)) +
-  ylab("Relative Abundance (Order > 1 %) \n") + ggtitle("Order Composition for sampling method") + scale_fill_manual(values = phylum_colors) 
+ramdata <- left_join(otus, merged_taxonomy, by = "otuid") # need to make otuid back to rownames
+ramdata <- column_to_rownames(ramdata, var = "otuid")
+ramdata <- as.data.frame(ramdata, stringsAsFactors = FALSE) # don't know if this is required
 
-# Plot family - here we add position fill to geom_bar() to make it look like everything adds up. Before each sample type did not go up to one - this reflects the rare phyla that were removed 
-ggplot(ps_family, aes(x = kingdom, y = Abundance, fill = family)) + 
-  #facet_grid(habitat~.) +
-  geom_bar(stat = "identity", position = "fill") +
-  # Remove x axis title
-  theme(axis.title.x = element_blank()) + 
-  #
-  guides(fill = guide_legend(reverse = TRUE, keywidth = 1, keyheight = 1)) +
-  ylab("Relative Abundance (Family > 2%) \n") +
-  ggtitle("Family Composition for sampling method")
+valid.taxonomy(data = list(data = ramdata)) # check if the format for taxonomy is correct
+input.ranks <- c("kingdom", "phylum", "class", "order", 
+                 "family", "genus", "species")
+reform.data <- reformat.taxonomy(list(data=ramdata),
+                                 input.ranks=input.ranks,
+                                 sep="; ")[[1]]
 
-# Normalization 
-# Scales reads by 
-# 1) taking proportions,
-# 2) multiplying by a given library size of n
-# 3) rounding down
-scale_reads <- function(physeq, n) {
-  physeq.scale <-
-    transform_sample_counts(physeq, function(x) {
-      (n * x/sum(x))
-    })
-  otu_table(physeq.scale) <- floor(otu_table(physeq.scale))
-  physeq.scale <- prune_taxa(taxa_sums(physeq.scale) > 0, physeq.scale)
-  return(physeq.scale)
-}
+# relative oTU abundance by taxonomic rank per sample
+group.abundance(data = list(reform.data = reform.data), rank = "o", ggplot2 = TRUE)
 
-# Scale reads to even depth 
-ps_scale <- scale_reads(ps, 60000) # I've chosen 60.000 reads, see smean
+# the order of the pcrid has to match the order of the sample columns in taxonomy
+attach(data)
+metadata <- data[order(PCRID),]
+rownames(metadata) <- NULL
+metadata <- metadata %>% column_to_rownames(var = "PCRID")
+metadata$samplingmethod <- "carnet"
+reform.data.test <- reform.data[,order(colnames(reform.data))]
 
-# Let's try an NMDS instead. For NMDS plots it's important to set a seed since the starting positions of samples in the alogrithm is random.
+# relative OTU abundance per sampling method
+group.abundance.meta(data = list(reform.data = reform.data.test), top = 30, rank = "o", drop.unclassified = TRUE, meta = metadata, meta.factor = "LandUSeType")  # the sampling strategies does not capture similar taxa
 
-# Important: if you calculate your bray-curtis distance metric "in-line" it will perform a square root transformation and Wisconsin double standardization. If you don't want this, you can calculate your bray-curtis distance separately
+# core taxa - to detect swarming insects on specific days
+core.OTU(data = list(reform.data = reform.data.test), meta = metadata, meta.factor="LandUSeType", percent=0.5) # This function returns a list showing otus that present in a pre-defined percent of samples in eachlevel of a given metadata category
 
-set.seed(41)
-
-# Ordinate
-ps_nmds <- ordinate(
-  physeq = ps_scale, 
-  method = "NMDS", 
-  distance = "bray"
-)
-
-scores <- as.data.frame(scores(ps_nmds)) # get names for nmds by creating a data frame
-
-# Plot 
-plot_ordination(
-  physeq = ps_scale,
-  ordination = ps_nmds,
-  title = "NMDS of Insect Communities by insect order (normalised data)"
-) +
-  geom_point() + theme_classic2() +
-  scale_size_continuous(range = c(3, 9)) + labs(size = "Insect abundance", colour = "Sampling method") +stat_ellipse(aes(x = scores$NMDS1, y = scores$NMDS2)) + guides(color = guide_legend(override.aes = list(linetype = 0)))
-
-library(ape)
-random_tree = rtree(ntaxa(ps), rooted = TRUE, tip.label = taxa_names(ps))
-plot(random_tree)
-
-physeq = merge_phyloseq(ps, random_tree)
-
-# Ordination plots - PCoA on Unifrac distances - takes abundance & phylogeny into account
-ordu = ordinate(physeq, "PCoA", "unifrac", weighted = TRUE)
-plot_ordination(physeq, ordu, color = "roughLand_use")
-p = plot_ordination(physeq, ordu, color = "roughLand_use", shape = "Time_band")
-p = p + geom_point(size = 7, alpha = 0.75)
-p = p + scale_color_brewer(type = "qual", palette = "Paired")
-p + ggtitle("MDS/PCoA on weighted-UniFrac distance")
+core.OTU.rank(data = list(reform.data = reform.data.test), rank="s", drop.unclassified=TRUE, meta = metadata, meta.factor="samplingmethod", percent=0.25) #This function returns a list showing otus that present in a pre-defined percent of samples in eachlevel of a given metadata category.
