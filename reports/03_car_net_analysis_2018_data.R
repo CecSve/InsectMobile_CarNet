@@ -28,6 +28,7 @@ library(vegan)
 library(ade4)
 library(iNEXT)
 library(phyloseq)
+library(fossil)
 
 # visualisation
 library(ggplot2)
@@ -40,26 +41,18 @@ library(jpeg)
 library(gtable)
 library(ggimage)
 
+# GBIF comparison
+library(rgbif)
+library(dplyr)
+library(purrr)
+library(readr)  
+library(magrittr) # for %T>% pipe
+library(rgbif) # for occ_download
+library(taxize) # for get_gbifid_
+
+
 ### colour scheme ##################
-iwanthue_19 <- palette(c(rgb(255,75,203, maxColorValue=255),
-                         rgb(35,124,0, maxColorValue=255),
-                         rgb(233,69,247, maxColorValue=255),
-                         rgb(77,108,0, maxColorValue=255),
-                         rgb(52,102,255, maxColorValue=255),
-                         rgb(216,141,0, maxColorValue=255),
-                         rgb(0,48,187, maxColorValue=255),
-                         rgb(236,86,0, maxColorValue=255),
-                         rgb(1,82,175, maxColorValue=255),
-                         rgb(255,70,95, maxColorValue=255),
-                         rgb(1,130,77, maxColorValue=255),
-                         rgb(237,129,250, maxColorValue=255),
-                         rgb(172,175,111, maxColorValue=255),
-                         rgb(187,154,251, maxColorValue=255),
-                         rgb(121,65,0, maxColorValue=255),
-                         rgb(138,170,243, maxColorValue=255),
-                         rgb(134,0,80, maxColorValue=255),
-                         rgb(214,140,143, maxColorValue=255),
-                         rgb(255,103,168, maxColorValue=255)))
+iwanthue_19 <- palette(c(rgb(255,75,203, maxColorValue=255),rgb(35,124,0, maxColorValue=255), rgb(233,69,247, maxColorValue=255), rgb(77,108,0, maxColorValue=255),rgb(52,102,255, maxColorValue=255), rgb(216,141,0, maxColorValue=255), rgb(0,48,187, maxColorValue=255), rgb(236,86,0, maxColorValue=255), rgb(1,82,175, maxColorValue=255), rgb(255,70,95, maxColorValue=255), rgb(1,130,77, maxColorValue=255), rgb(237,129,250, maxColorValue=255), rgb(172,175,111, maxColorValue=255), rgb(187,154,251, maxColorValue=255), rgb(121,65,0, maxColorValue=255), rgb(138,170,243, maxColorValue=255), rgb(134,0,80, maxColorValue=255),rgb(214,140,143, maxColorValue=255), rgb(255,103,168, maxColorValue=255)))
 
 ### load data #####################
 asvs <- read.delim("cleaned-data/DK_asvtable_2018_data.txt", sep="\t")
@@ -204,7 +197,7 @@ setdiff(dkarter$order, allinsects$order)
 ### plot stacked bar plot of insect orders ###########
 
 plot <- ordercomp %>% mutate(filter = fct_relevel(filter, 
-                            "classInsecta", "classInsecta99", "uniquenames", "Denmark")) %>% ggplot(aes(filter, value))
+                                                  "classInsecta", "classInsecta99", "uniquenames", "Denmark")) %>% ggplot(aes(filter, value))
 
 stacked_plot <-
   plot + geom_bar(
@@ -274,49 +267,45 @@ newspeciesDK <- newspeciesDK %>% group_by(order, species) %>% distinct(species) 
 #write.table(newspeciesDK, file = "cleaned-data/newspecies_DK.txt", sep = "\t", row.names = F)
 
 ### gbif comparison ###############
-library(rgbif)
+
+# run crossed out lines if you want to generate new comparison to GBIF 
 
 # fill in your gbif.org credentials 
-user <- "" # your gbif.org username 
-pwd <- "" # your gbif.org password
-email <- "" # your email 
-
-library(dplyr)
-library(purrr)
-library(readr)  
-library(magrittr) # for %T>% pipe
-library(rgbif) # for occ_download
-library(taxize) # for get_gbifid_
+#user <- "" # your gbif.org username 
+#pwd <- "" # your gbif.org password
+#email <- "" # your email 
 
 # match the names 
-gbif_taxon_keys <- 
-  newspeciesDK %>% 
-  pull("species") %>% # use fewer names if you want to just test 
-  taxize::get_gbifid_(method="backbone") %>% # match names to the GBIF backbone to get taxonkeys
-  imap(~ .x %>% mutate(original_sciname = .y)) %>% # add original name back into data.frame
-  bind_rows() %T>% # combine all data.frames into one
-  readr::write_tsv(path = "all_matches.tsv") %>% # save as side effect for you to inspect if you want
-  #filter(matchtype == "EXACT" & status == "ACCEPTED") %>% # get only accepted and matched names
-  filter(class == "Insecta") %>% # remove anything that might have matched to a non-insect
-  pull(usagekey) # get the gbif taxonkeys
+#gbif_taxon_keys <- 
+#  newspeciesDK %>% 
+#  pull("species") %>% # use fewer names if you want to just test 
+#  taxize::get_gbifid_(method="backbone") %>% # match names to the GBIF backbone to get taxonkeys
+#  imap(~ .x %>% mutate(original_sciname = .y)) %>% # add original name back into data.frame
+#  bind_rows() %T>% # combine all data.frames into one
+#  readr::write_tsv(path = "all_matches.tsv") %>% # save as side effect for you to inspect if you want
+#filter(matchtype == "EXACT" & status == "ACCEPTED") %>% # get only accepted and matched names
+#  filter(class == "Insecta") %>% # remove anything that might have matched to a non-insect
+#  pull(usagekey) # get the gbif taxonkeys
 
+# comparison to DK
 # gbif_taxon_keys should be a long vector like this c(2977832,2977901,2977966,2977835,2977863)
 # !!very important here to use pred_in!!
 # use matched gbif_taxon_keys from above 
-occ_download(
-  pred_in("taxonKey", gbif_taxon_keys),
-  pred("country", "DK"),
-  format = "SIMPLE_CSV",
-  user=user,pwd=pwd,email=email
-) # this generates a file for your user where the matches are
+#occ_download(
+#  pred_in("taxonKey", gbif_taxon_keys),
+#  pred("country", "DK"),
+#  format = "SIMPLE_CSV",
+#  user=user,pwd=pwd,email=email
+#) # this generates a file for your user where the matches are
 
+# comparison to region (Germany, Norway and Sweden)
 # use matched gbif_taxon_keys from above 
-occ_download(
-  pred_in("taxonKey", gbif_taxon_keys),
-  pred_in("country", c("SE", "NO", "DE")),
-  format = "SIMPLE_CSV",
-  user=user,pwd=pwd,email=email
-) # this generates a file for your user where the matches are
+#occ_download(
+#  pred_in("taxonKey", gbif_taxon_keys),
+#  pred_in("country", c("SE", "NO", "DE")),
+#  format = "SIMPLE_CSV",
+#  user=user,pwd=pwd,email=email
+#) # this generates a file for your user where the matches are
 
 gbif_query <- read.delim("raw-data/0080813-200613084148143.csv") # GBIF.org (07 October 2020) GBIF Occurrence Download https://doi.org/10.15468/dl.2mker8 
 gbif_query_scandi <- read.delim("raw-data/0080815-200613084148143.csv") # GBIF.org (07 October 2020) GBIF Occurrence Download https://doi.org/10.15468/dl.zvumvk 
@@ -338,24 +327,44 @@ newspeciesDK %>%
   dplyr::summarise(n = n()) %>%
   dplyr::mutate(freq = (n / sum(n))*100) # get the proportion in percent
 
-allearter %>%
+test <- allearter %>%
   group_by(Orden) %>%
   dplyr::summarise(n = n())
 
-taxonomy %>%
+test2 <- taxonomy %>%
   group_by(order) %>%
   summarise(n = n())
 
+test <- test %>% dplyr::rename("order" = Orden) %>% dplyr::rename("count_allearter" = n)
+test2 <- test2  %>% dplyr::rename("count_carnet" = n) %>% mutate(order = replace(order, order == 'Psocodea', 'Psocoptera'))
+
+test3 <- left_join(test2, test, by = "order")
+test3$prop <- ((test3$count_carnet/test3$count_allearter)*100)
+
 ### species accumulation curves #########
-otus <- otus %>% column_to_rownames(var = "otuid")
+otus <- decostand(asvs, method = "pa") # transform into presence absence
 
 ## Accumulation model
 
 #Data has species as rows and sites as columns, but we need the opposite. Thus, transpose the original data
 otusT <- t(otus)
 #get richness estimators (for each sample, cumulative)
-pool <- poolaccum(otusT, permutations = 100)
+pool <- poolaccum(otusT, permutations = 1000)
 plot(pool)
+
+# using the fossil library to calculate richness estimates - including chao2
+test <- spp.est(otus, rand = 100, abund = FALSE, counter = FALSE, max.est = 'all')
+test2 <- as_tibble(test)
+
+str(test2)
+
+# the column names are bonkers so they need to be renamed
+speciesest <- test2 %>% rename(sample = `# Samples`, Observed = S.obs, s.obs.upper = `S.obs(+95%)`, s.obs.lower = `S.obs(-95%)`,  chao2.upper = `Chao2(upper)`, chao2.lower = `Chao2(lower)`, ICE.upper = `ICE(lower)`, ICE.lower = `V10`, jack1.upper = `Jack1(lupper)`, jack1.lower = `Jack1(lower)`)
+
+speciesest %>% tidyr::gather("id", "value", c(2, 5, 8, 11)) %>% 
+  ggplot(., aes(sample, value))+
+  geom_smooth(method = "loess", se=FALSE, color="black", size = 2)+
+  facet_wrap(~id) + theme_minimal_grid() + labs(x = "Number of samples", y = "Number of insect ASVs") 
 
 # rarefaction curve
 #build the species accumulation curve & rarefaction curve (expected)
@@ -421,7 +430,7 @@ plot.inext <-
 #ggsave("plots/inext_accumulation.png", grid.draw(gList(rasterGrob(carnet, width = unit(1,"npc"), height = unit(1,"npc")), ggplotGrob(plot.inext))))
 
 grid.draw(gList(rasterGrob(carnet, width=unit(40,"lines"), height=unit(30,"lines"), interpolate = T), 
-                                  ggplotGrob(plot.inext)))
+                ggplotGrob(plot.inext)))
 
 # Sample completeness curves - plots the sample coverage with respect to sample size for the same range described in sample-size-based R/E curves
 ggiNEXT(otuspa.inext, se = T, type=2, color.var="order") + theme_cowplot()
