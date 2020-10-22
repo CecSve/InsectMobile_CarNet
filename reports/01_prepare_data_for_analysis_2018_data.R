@@ -68,8 +68,12 @@ taxonomy_class <-
 taxonomy_99 <-
   taxonomy %>% filter(class == "Insecta") %>% filter(identity >= 99) %>% column_to_rownames('occurrenceId')
 
+# only keep insect asvs
+keep <- rownames(taxonomy_class)
+asvtable <- asvs[(rownames(asvs) %in% keep), ]
+
 # save outputs
-write.table(asvs,file="cleaned-data/DK_asvtable_2018_data.txt",sep="\t")
+write.table(asvtable,file="cleaned-data/DK_asvtable_2018_data.txt",sep="\t")
 write.table(data,file="cleaned-data/DK_metadata_2018_sequenced.txt",sep="\t")
 write.table(taxonomy_class,file="cleaned-data/DK_taxonomy_Insecta.txt",sep="\t")
 write.table(taxonomy_99,file="cleaned-data/DK_taxonomy_Insecta_99.txt",sep="\t")
