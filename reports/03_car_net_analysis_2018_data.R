@@ -402,9 +402,28 @@ otuspa.inext <- iNEXT(otuspa, q = c(0, 1, 2), datatype = "incidence_freq", size 
 otuspa.inext$DataInfo # summarizing data information, eturns basic data information including the reference sample size (n), observed species richness (S.obs), a sample coverage estimate (SC), and the first ten frequency counts (f1‐f10)
 otuspa.inext$iNextEst # showing diversity estimates along with related statistics for a series of rarefied and extrapolated samples
 otuspa.inext$AsyEst # showing asymptotic diversity estimates along with related statistics
-ChaoRichness(otuspa, datatype = "abundance", conf = 0.95)
+ChaoRichness(otuspa, datatype = "incidence_freq", conf = 0.95)
 #look at the data
 otuspa.inext
+
+out.inc <- iNEXT(otuspa, q=0, datatype="incidence_freq", size=t)
+# Sample‐size‐based R/E curves
+ggiNEXT(out.inc, type=1, color.var="site") + 
+  theme_bw(base_size = 18) + 
+  theme(legend.position="none")
+
+# Sample completeness curves
+ggiNEXT(out.inc, type=2, color.var="site") +
+  ylim(c(0,1)) +
+  theme_bw(base_size = 18) + 
+  theme(legend.position="none")
+
+# Coverage‐based R/E curves
+ggiNEXT(out.inc, type=3, color.var ="site") + 
+  xlim(c(0,1)) +
+  theme_bw(base_size = 18) +
+  theme(legend.position="bottom",
+        legend.title=element_blank())
 
 #plot the results
 # Sample‐size‐based R/E curves - plots diversity estimates with confidence intervals (if se=TRUE) as a function of sample size up to double the reference sample size, by default, or a user‐specified endpoint.
