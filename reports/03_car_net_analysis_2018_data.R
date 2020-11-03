@@ -50,13 +50,12 @@ library(magrittr) # for %T>% pipe
 library(rgbif) # for occ_download
 library(taxize) # for get_gbifid_
 
-
 ### colour scheme ##################
 iwanthue_19 <- palette(c(rgb(255,75,203, maxColorValue=255),rgb(35,124,0, maxColorValue=255), rgb(233,69,247, maxColorValue=255), rgb(77,108,0, maxColorValue=255),rgb(52,102,255, maxColorValue=255), rgb(216,141,0, maxColorValue=255), rgb(0,48,187, maxColorValue=255), rgb(236,86,0, maxColorValue=255), rgb(1,82,175, maxColorValue=255), rgb(255,70,95, maxColorValue=255), rgb(1,130,77, maxColorValue=255), rgb(237,129,250, maxColorValue=255), rgb(172,175,111, maxColorValue=255), rgb(187,154,251, maxColorValue=255), rgb(121,65,0, maxColorValue=255), rgb(138,170,243, maxColorValue=255), rgb(134,0,80, maxColorValue=255),rgb(214,140,143, maxColorValue=255), rgb(255,103,168, maxColorValue=255)))
 
 ### load data #####################
-asvs <- read.delim("cleaned-data/DK_asvtable_2018_data.txt", sep="\t")
-data <- read.delim("cleaned-data/DK_metadata_2018_sequenced.txt",sep="\t")
+asvs <- read.delim("cleaned-data/DK_asvtable_2018_data_totalsamples.txt", sep="\t")
+data <- read.delim("cleaned-data/DK_metadata_2018_sequenced_totalsamples.txt",sep="\t")
 #taxonomy_filtered <- read.delim("cleaned-data/DK_taxonomy.txt",sep="\t")
 taxonomy_insects <- read.delim("cleaned-data/DK_taxonomy_Insecta.txt",sep="\t")
 taxonomy_insects99 <- read.delim("cleaned-data/DK_taxonomy_Insecta_99.txt",sep="\t")
@@ -141,7 +140,7 @@ length(unique(data$RouteID))
 
 # how many samples
 length(unique(data$SampleID)) # total/complete samples
-length(unique(data$SampleID_size)) # size sorted sample IDs
+#length(unique(data$SampleID_size)) # size sorted sample IDs
 
 # how many pilots?
 length(unique(data$PID))
@@ -399,7 +398,7 @@ t <- seq(1, 4000, by=50)
 
 #apply `iNEXT` main function
 otuspa.inext <- iNEXT(otuspa, q = c(0, 1, 2), datatype = "incidence_freq", size = t) # calculate for all three hill numbers
-otuspa.inext$DataInfo # summarizing data information, eturns basic data information including the reference sample size (n), observed species richness (S.obs), a sample coverage estimate (SC), and the first ten frequency counts (f1‐f10)
+otuspa.inext$DataInfo # summarizing data information, returns basic data information including the reference sample size (n), observed species richness (S.obs), a sample coverage estimate (SC), and the first ten frequency counts (f1‐f10)
 otuspa.inext$iNextEst # showing diversity estimates along with related statistics for a series of rarefied and extrapolated samples
 otuspa.inext$AsyEst # showing asymptotic diversity estimates along with related statistics
 ChaoRichness(otuspa, datatype = "incidence_freq", conf = 0.95)
@@ -457,7 +456,6 @@ ggiNEXT(otuspa.inext, se = T, type=2, color.var="order") + theme_cowplot()
 # Coverage‐based R/E curves - plots the diversity estimates with confidence intervals (if se=TRUE) as a function of sample coverage up to the maximum coverage obtained from the maximum size described in sample-size-based R/E curves
 ggiNEXT(otuspa.inext, se = TRUE, type=3, color.var ="order") + theme_cowplot()
 
-
 # extract data for ggplot 
 #accdata <- summary(pool, display = "chao")
 #observed <- summary(pool, display = "S")
@@ -469,7 +467,7 @@ ggiNEXT(otuspa.inext, se = TRUE, type=3, color.var ="order") + theme_cowplot()
 test <- as_ggplot(gList(rasterGrob(carnet, width=unit(50,"lines"), height=unit(40,"lines"), interpolate = T), ggplotGrob(plot.inext)))
 
 g1 <- ggplotGrob(mapplot)
-g2 <- ggplotGrob(small_leg_plot)
+g2 <- ggplotGrob(stacked_plot) #small_leg_plot
 g3 <- ggplotGrob(test)
 #g3 <- ggplotGrob(acummulation_plot)
 g <- rbind(g1, g2, g3, size = "first")
@@ -477,7 +475,7 @@ g$widths <- unit.pmax(g1$widths, g2$widths, g3$widths)
 grid.newpage()
 grid.draw(g)
 
-ggsave('plots/fig1.tiff', plot = g, width=500,height=700, units = "mm", dpi=300)
+ggsave('plots/figure1.png', plot = g, width=600,height=800, units = "mm", dpi=100)
 
 
 #figure1 <- ggarrange(mapplot, small_leg_plot, b, ncol = 1, align = "v")
@@ -495,7 +493,7 @@ allearter %>% dplyr::filter(!Orden %in% remove) %>% group_by(Orden) %>% dplyr::s
 dkarter_z <- allearter %>% dplyr::filter(!Orden %in% remove) # remove non-flying insect orders
 length(unique(dkarter_z$Orden))
 length(unique(dkarter_z$Familie))
-length(unique(dkarter_z$Slægt))
+length(unique(dkarter_z$Sl?gt))
 length(unique(dkarter_z$`Videnskabeligt navn`))
 
 # order
@@ -607,7 +605,7 @@ TAX = tax_table(tax)
 OTU
 TAX
 
-test <- data %>% dplyr::select(PCRID, Date, Wind, Temperature) %>% column_to_rownames(var = "PCRID")
+test <- data %>% dplyr::select(SampleID, Date, Wind, Temperature) %>% column_to_rownames(var = "SampleID")
 metadata <- sample_data(test) # create the phyloseq sample data object, needs to be reordered to fit with PCRIDs as row names
 
 # now we can create a phyloseq object
@@ -627,7 +625,7 @@ smax <- max(sample_sums(ps))
 library(RAM)
 
 # To be able to merge the OTU table with the taxonomy table, they need to have a common column to call
-otus <- rownames_to_column(testram, var = "otuid")
+otus <- rownames_to_column(asvs, var = "otuid")
 taxonomy_insects <- read.delim("cleaned-data/DK_taxonomy_Insecta.txt",sep="\t")
 taxonomy <- rownames_to_column(taxonomy_insects, var = "otuid") # remeber to remake the column into rownames for both datasets if you need to
 
@@ -665,6 +663,7 @@ metadata <- metadata %>% column_to_rownames(var = "PCRID")
 metadata$samplingmethod <- "carnet"
 reform.data.test <- reform.data[,order(colnames(reform.data))]
 
+### DOES NOT WORK###########
 # relative OTU abundance per sampling method
 group.abundance.meta(data = list(reform.data = reform.data.test), top = 30, rank = "o", drop.unclassified = TRUE, meta = metadata, meta.factor = "LandUSeType")  # the sampling strategies does not capture similar taxa
 
@@ -672,3 +671,4 @@ group.abundance.meta(data = list(reform.data = reform.data.test), top = 30, rank
 core.OTU(data = list(reform.data = reform.data.test), meta = metadata, meta.factor="LandUSeType", percent=0.5) # This function returns a list showing otus that present in a pre-defined percent of samples in eachlevel of a given metadata category
 
 core.OTU.rank(data = list(reform.data = reform.data.test), rank="s", drop.unclassified=TRUE, meta = metadata, meta.factor="samplingmethod", percent=0.25) #This function returns a list showing otus that present in a pre-defined percent of samples in eachlevel of a given metadata category.
+
