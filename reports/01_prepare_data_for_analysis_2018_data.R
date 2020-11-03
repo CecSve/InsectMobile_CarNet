@@ -78,6 +78,24 @@ write.table(data,file="cleaned-data/DK_metadata_2018_sequenced.txt",sep="\t")
 write.table(taxonomy_class,file="cleaned-data/DK_taxonomy_Insecta.txt",sep="\t")
 write.table(taxonomy_99,file="cleaned-data/DK_taxonomy_Insecta_99.txt",sep="\t")
 
+### merging total samples from size sorted samples ###########
+# 
+data_unique <- data %>% distinct(SampleID, .keep_all = TRUE)
+keep <- data %>% select(PCRID, SampleID)
+
+t.asvs <- t(asvtable)
+t.asvs <- as.data.frame(t.asvs) %>% rownames_to_column(var = "PCRID") 
+test <- full_join(keep, t.asvs, by = "PCRID")
+
+test2 <- test %>% dplyr::select(-PCRID) %>% group_by(SampleID) %>% summarise_all(list(sum))
+
+totsample_asvs <- test2 %>% column_to_rownames(var = "SampleID")
+totsample_asvs <- as.data.frame(t(totsample_asvs))
+
+# save outputs
+write.table(totsample_asvs,file="cleaned-data/DK_asvtable_2018_data_totalsamples.txt",sep="\t")
+write.table(data_unique,file="cleaned-data/DK_metadata_2018_sequenced_totalsamples.txt",sep="\t")
+
 # examining taxonomy data
 #table(taxonomy$order)
 #lepidoptera <- taxonomy %>% filter(order == "Lepidoptera")
