@@ -132,7 +132,7 @@ mapplot <- denmark %>%
   geom_point(data = landuse.map, 
              aes(x=lat, y = long, colour = "darkgrey"), size=4, show.legend = F) + theme_void() + scale_colour_manual(values = "darkgrey") + scalebar(denmark, dist = 25, dist_unit = "km", transform = T, model = "WGS84", st.size = 3) + labs(subtitle = "A") + north(denmark, symbol = 4, scale = 0.07) + theme(plot.subtitle = element_text(face = "bold", size = 20), plot.margin = margin(0, 0, 0, 0, "cm")) + panel_border()
 
-#ggsave("plots/Sampling_map_DK.png", height = 10) # remember to increase DPI for publication
+ggsave("plots/Sampling_map_DK.jpg", height = 10, width = 12, dpi = 600) # remember to increase DPI for publication
 
 ### analysis  #####
 #how many routes
@@ -233,22 +233,25 @@ stacked_plot <-
     position = "fill"
   ) + labs(
     x = "",
-    y = "Relative species richness",
+    y = "Relative ASV/species richness\n",
     fill = "Insect order",
     subtitle = "B"
-  )  + theme_minimal() + scale_fill_manual(values = iwanthue_19) + theme(
+  ) + theme_minimal() + scale_fill_manual(values = iwanthue_19) + theme(
     plot.subtitle = element_text(size = 20, face = "bold"),
     legend.position = "bottom",
     plot.margin = margin(0, 0, 0, 0, "cm"),
-    axis.text.x = element_text(size = 8),
-    axis.text.y = element_text(size = 8)
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12),
+    axis.title.y = element_text(size = 16, face = "bold")
   ) + guides(fill = guide_legend(nrow = 3)) + scale_x_discrete(
     labels = c(
-      "classInsecta" = "class = Insecta",
-      "classInsecta99" = "class = Insecta & match = >99%",
-      "uniquenames" = "Unique names"
+      "classInsecta" = "Class = \nInsecta",
+      "classInsecta99" = "Class = Insecta & \nmatch = >99%",
+      "uniquenames" = "Unique \nnames"
     )
   )# position = "fill"in geom_bar gives relative
+
+ggsave("plots/Fig1B_Stacked_bars_DK.jpg", height = 10, width = 12, dpi = 600) # remember to increase DPI for publication
 
 # Apply on original plot
 small_leg_plot <- addSmallLegend(stacked_plot)
@@ -433,17 +436,21 @@ plot.inext <-
     type = 1,
     color.var = "order",
     grey = T
-  ) + theme_classic() + theme(
+  ) + theme_pubclean() + theme(
     legend.position = "bottom",
     legend.title = element_blank(),
     rect = element_rect(fill = "transparent"),
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent"),
     plot.subtitle = element_text(size = 20, face = "bold"),
-    legend.text = element_text(size = 8),
-    plot.margin = margin(0, 0, 0, 0, "cm")
+    legend.text = element_text(size = 12),
+    plot.margin = margin(0, 0, 0, 0, "cm"),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 16, face = "bold")
   ) + scale_fill_grey(start = 0, end = .4) +
-  scale_colour_grey(start = .2, end = .2) + scale_shape_discrete(labels = c("ASV richness", "Shannon diversity", "Simpson diversity")) + guides(fill = FALSE, colour = FALSE) + labs(x = "Number of samples", y = "Number of insect ASVs",subtitle = "C")
+  scale_colour_grey(start = .2, end = .2) + scale_shape_discrete(labels = c("ASV richness", "Shannon diversity", "Simpson diversity")) + guides(fill = FALSE, colour = FALSE) + labs(x = "\nNumber of samples", y = "Number of insect ASVs",subtitle = "C")  +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 10))
 
 #ggsave("plots/inext_accumulation.png", grid.draw(gList(rasterGrob(carnet, width = unit(1,"npc"), height = unit(1,"npc")), ggplotGrob(plot.inext))))
 
@@ -464,19 +471,22 @@ ggiNEXT(otuspa.inext, se = TRUE, type=3, color.var ="order") + theme_cowplot()
 
 #ggsave("plots/zoom_accumulation_chao1.png")
 
-test <- as_ggplot(gList(rasterGrob(carnet, width=unit(50,"lines"), height=unit(40,"lines"), interpolate = T), ggplotGrob(plot.inext)))
+as_ggplot(gList(rasterGrob(carnet, width=unit(80,"lines"), height=unit(60,"lines"), interpolate = T), ggplotGrob(plot.inext)))
+
+ggsave("plots/Fig1C_richness_DK.jpg", height = 10, width = 12, dpi = 600)
+
+test <- as_ggplot(gList(rasterGrob(carnet, width=unit(52,"lines"), height=unit(42,"lines"), interpolate = T), ggplotGrob(plot.inext)))
 
 g1 <- ggplotGrob(mapplot)
 g2 <- ggplotGrob(stacked_plot) #small_leg_plot
-g3 <- ggplotGrob(test)
+g3 <- ggplotGrob(plot.inext)
 #g3 <- ggplotGrob(acummulation_plot)
 g <- rbind(g1, g2, g3, size = "first")
 g$widths <- unit.pmax(g1$widths, g2$widths, g3$widths)
 grid.newpage()
 grid.draw(g)
 
-ggsave('plots/figure1.png', plot = g, width=600,height=800, units = "mm", dpi=100)
-
+ggsave('plots/figure1.jpg', plot = g, width=450,height=550, units = "mm", dpi=600)
 
 #figure1 <- ggarrange(mapplot, small_leg_plot, b, ncol = 1, align = "v")
 #save_plot("plots/fig1_relabun_estimaterich.png", figure1, base_height = 10, base_width = 8)
