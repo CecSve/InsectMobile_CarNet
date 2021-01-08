@@ -77,7 +77,6 @@ data$numberTime <- as.numeric(lubridate::hms(data$StartTime))#Denmark
 #transform to minutes
 data$numberTime <- data$numberTime/60 
 
-## haven't done this! rewrite to fit
 # adding utm coordinates for route centroids
 mergedData <-
   merge(data, coords, by.x = "RouteID", by.y = "routeID")
@@ -133,6 +132,25 @@ mapplot <- denmark %>%
              aes(x=lat, y = long, colour = "darkgrey"), size=4, show.legend = F) + theme_void() + scale_colour_manual(values = "darkgrey") + scalebar(denmark, dist = 25, dist_unit = "km", transform = T, model = "WGS84", st.size = 3) + labs(subtitle = "A") + north(denmark, symbol = 4, scale = 0.07) + theme(plot.subtitle = element_text(face = "bold", size = 20), plot.margin = margin(0, 0, 0, 0, "cm")) + panel_border()
 
 ggsave("plots/Sampling_map_DK.jpg", height = 10, width = 12, dpi = 600) # remember to increase DPI for publication
+
+### adding regions to coordinates ####
+regiondata <- 
+  data.frame(sampleID = data$SampleID,
+             lat = dist.location$data.utm_x,
+             long = dist.location$data.utm_y)
+
+library(geonames)
+library(ISOcodes)
+library(purrr)
+
+options(geonamesUsername="hvalli_2002")
+
+my_ports_countrycode <- map2_dfr(
+  regiondata[["lat"]], 
+  regiondata[["long"]], 
+  .f = GNcountryCode, 
+  radius = 10
+)
 
 ### analysis  #####
 #how many routes
@@ -206,15 +224,17 @@ stacked_plot <-
     position = "fill"
   ) + labs(
     x = "",
-    y = "Relative abundance",
+    y = "Relative ASV/species richness\n",
     fill = "Insect order",
     subtitle = "A"
   ) + theme_classic2() + scale_fill_manual(values = iwanthue_19) + theme(
-    title = element_text(),
+    title = element_text(face = "bold"),
     legend.position = "bottom",
-    axis.text.x = element_text(size = 8),
-    axis.text.y = element_text(size = 8)
-  ) + guides(fill = guide_legend(nrow = 2)) + scale_x_discrete(labels=c("classInsecta" = "class = Insecta", "classInsecta99" = "class = Insecta & match = >99%", "uniquenames" = "Unique names"))# position = "fill"in geom_bar gives relative
+    axis.text.x = element_text(size = 10, face = "bold"),
+    axis.text.y = element_text(size = 10, face = "bold")
+  ) + guides(fill = guide_legend(nrow = 3)) + scale_x_discrete(labels=c("classInsecta" = "class = Insecta", "classInsecta99" = "class = Insecta & match = >99%", "uniquenames" = "Unique names"))# position = "fill"in geom_bar gives relative
+
+ggsave("plots/barplots.jpg", height = 10, width = 12, dpi = 600) 
 
 addSmallLegend <- function(myPlot, pointSize = 1, textSize = 7, spaceLegend = 0.7) {
   myPlot +
