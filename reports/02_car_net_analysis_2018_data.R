@@ -76,7 +76,7 @@ taxonomy_insects99 <- read.delim("cleaned-data/DK_taxonomy_Insecta_99.txt",sep="
 environ <- read.delim("cleaned-data/allInsects_environdata.txt",sep="\t")
 
 # load centroid coordinates for each route
-coords <- read.delim("cleaned-data/DK_ruter2018_pkt_koordinater_withregion_test.txt")
+coords <- read.delim("cleaned-data/DK_ruter2018_pkt_koordinater_withregions.txt")
 coords <- coords %>% dplyr::select(routeID, utm_x, utm_y, regionNavn)
 
 ### standardize data input #########
@@ -688,6 +688,19 @@ AICc(lme1000)
 
 tab_model(lme1000, pred.labels = c("Intercept (>50% farmland cover)", "Funen", "West Jutland", "East Jutland", "Sealand", ">50% forest cover", "Mixed cover", ">50% urban cover"))
 
+# emmeans
+library(emmeans)
+
+ems <- emmeans(lme1000, specs = pairwise ~ regionNavn, type = "response")
+ems$contrasts
+ems$emmeans
+plot(ems, comparisons = TRUE)
+
+ems <- emmeans(lme1000, specs = pairwise ~ hab50, type = "response")
+ems$contrasts
+ems$emmeans
+plot(ems, comparisons = TRUE)
+
 # syrphidae
 hist(data_syr$syr_richness)
 hist(log(data_syr$syr_richness))
@@ -705,6 +718,16 @@ qqnorm(resid(lme1000))
 AICc(lme1000)
 
 tab_model(lme1000, pred.labels = c("Intercept (>50% farmland cover)", "Funen", "West Jutland", "East Jutland", "Sealand", ">50% forest cover", "Mixed cover", ">50% urban cover"))
+
+ems <- emmeans(lme1000, specs = pairwise ~ regionNavn, type = "response")
+ems$contrasts
+ems$emmeans
+plot(ems, comparisons = TRUE)
+
+ems <- emmeans(lme1000, specs = pairwise ~ hab50, type = "response")
+ems$contrasts
+ems$emmeans
+plot(ems, comparisons = TRUE)
 
 ### new species for DK? ###############
 # how many species were detected by the net and is not present in the Danish species database? 
