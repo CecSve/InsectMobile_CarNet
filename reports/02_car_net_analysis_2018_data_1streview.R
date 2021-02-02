@@ -213,7 +213,7 @@ dkarter <-  allearter %>% group_by(Orden) %>% dplyr::summarise(value = n()) # co
 remove <- c("Phthiraptera", "Siphonaptera", "Zygentoma", "Microcoryphia")
 dkarter <-  dkarter %>% dplyr::filter(!Orden %in% remove)
 
-allearter %>% dplyr::filter(!Orden %in% remove) %>% group_by(Rødlistestatus) %>% dplyr::summarise(value = n())
+allearter %>% dplyr::filter(!Orden %in% remove) %>% group_by(RÃ¸dlistestatus) %>% dplyr::summarise(value = n())
 
 ### get summaries for the taxonomy assigned with different filters are rename Psocodea to Psocoptera ########
 allinsects <- taxonomy %>% group_by(order) %>% dplyr::summarise(value = n()) %>% 
@@ -236,10 +236,10 @@ uniquenames$filter <- "uniquenames"
 
 ### Red List ###########
 
-redlist <- allearter %>% dplyr::select(`Videnskabeligt navn`, Rødlistestatus, Fredningsstatus, `Bonn-konventionen`, `Bern-konventionen`, CITES, `NOBANIS-arter`, `NOBANIS (herkomst)`, `NOBANIS (etableringsstatus)`, `NOBANIS (invasiv optræden)`, `Øvrige forvaltningskategorier`)
+redlist <- allearter %>% dplyr::select(`Videnskabeligt navn`, RÃ¸dlistestatus, Fredningsstatus, `Bonn-konventionen`, `Bern-konventionen`, CITES, `NOBANIS-arter`, `NOBANIS (herkomst)`, `NOBANIS (etableringsstatus)`, `NOBANIS (invasiv optrÃ¦den)`, `Ã˜vrige forvaltningskategorier`)
 
 redlistcar <- merge(unique_species, redlist, by.x = "species", by.y = "Videnskabeligt navn")
-table(redlistcar$Rødlistestatus)
+table(redlistcar$RÃ¸dlistestatus)
 #write.table(redlistcar, file = "cleaned-data/redlistspecies.txt")
 
 # match columns prior to merge
@@ -338,9 +338,18 @@ t.rarefied.data <- t(rarefied.data)
 colSums(rarefied.data)
 rowSums(rarefied.data) # both look right
 
+# diversity/richness estimators - here on rarefied data
+pool <- poolaccum(t.rarefied.data, permutations = 1000)
+plot(pool)
+
+# non-rarefied data
 pool <- poolaccum(otusT, permutations = 1000)
 plot(pool)
-rowSums(Srare)
+
+# presence absence
+totus <- t(otus)
+pool <- poolaccum(totus, permutations = 1000)
+plot(pool)
 
 # using the fossil library to calculate richness estimates - including chao2, remember to be aware of whether data is pa (abund = F) or abundance or rarefied (abund = T)
 test <- spp.est(rarefied.data, rand = 100, abund = TRUE, counter = FALSE, max.est = 'all')
@@ -358,7 +367,6 @@ speciesest %>% tidyr::gather("id", "value", c(2, 5, 8, 11)) %>%
 data <- cbind(data, speciesest)
 
 # get total richness per sample
-totus <- t(otus)
 totus <- as.data.frame(totus)
 totus$richness <- rowSums(totus)
 richnessdata <- totus %>% rownames_to_column(var = "SampleID") %>% dplyr::select(SampleID, richness)
