@@ -1179,11 +1179,15 @@ ggsave('plots/figure1.jpg', plot = g, width=450,height=550, units = "mm", dpi=60
 #save_plot("plots/fig1_relabun_estimaterich.png", figure1, base_height = 10, base_width = 8)
 
 ### z-test  ##################
+
+# base the analysis on unique bins to avoid intraspecific variation/inflation of taxa
+unique_bins <- taxonomy %>% filter(!duplicated(scientificName))
+
 # how many unique observations in taxonomy
-length(unique(taxonomy$order))
-length(unique(taxonomy$family))
-length(unique(taxonomy$genus))
-length(unique(taxonomy$species))
+length(unique(unique_bins$order))
+length(unique(unique_bins$family))
+length(unique(unique_bins$genus))
+length(unique(unique_bins$species))
 
 # in the Danish species list
 allearter %>% dplyr::filter(!Orden %in% remove) %>% group_by(Orden) %>% dplyr::summarise(value = n()) # count how many species are known for each order
@@ -1218,80 +1222,103 @@ test <- allearter %>% dplyr::filter(!Orden %in% remove) %>%
   group_by(Orden) %>%
   summarise(n = n())
 
-taxonomy %>%
+#taxonomy %>% group_by(order) %>% summarise(n = n()) # this way does not account for intraspecific variation and we first need to remove duplicated BINs
+
+taxonomy %>% filter(!duplicated(scientificName)) %>% 
   group_by(order) %>%
   summarise(n = n())
 
 # Is the proportion of insect orders car nets equal to the proportion of insect orders in Denmark
 # Coleoptera
-res <- prop.test(x = c(1014, 3866), n = c(8172, 18791))
+res <- prop.test(x = c(568, 3866), n = c(4653, 18791))
 # Printing the results
 res 
+(568/3866)*100
 
 # Dermaptera
-res <- prop.test(x = c(1, 6), n = c(8172, 18791))
+res <- prop.test(x = c(1, 6), n = c(4653, 18791))
 # Printing the results
 res 
+(1/6)*100
 
 # Diptera
-res <- prop.test(x = c(4828, 5086), n = c(8172, 18791))
+res <- prop.test(x = c(2517, 5086), n = c(4653, 18791))
 # Printing the results
 res 
+(2517/5086)*100
 
 # Ephemeroptera
-res <- prop.test(x = c(12, 43), n = c(8172, 18791))
+res <- prop.test(x = c(8, 43), n = c(4653, 18791))
 # Printing the results
 res 
+(8/43)*100
 
 # Hemiptera  
-res <- prop.test(x = c(656, 1495), n = c(8172, 18791))
+res <- prop.test(x = c(399, 1495), n = c(4653, 18791))
 # Printing the results
 res 
+(399/1495)*100
 
 # Hymenoptera     
-res <- prop.test(x = c(1358, 5150), n = c(8172, 18791))
+res <- prop.test(x = c(958, 5150), n = c(4653, 18791))
 # Printing the results
 res 
+(958/5150)*100
 
 # Lepidoptera      
-res <- prop.test(x = c(129, 2590), n = c(8172, 18791))
+res <- prop.test(x = c(104, 2590), n = c(4653, 18791))
 # Printing the results
 res 
+
+(104/2590)*100
 
 # Mecoptera         
-res <- prop.test(x = c(3, 4), n = c(8172, 18791))
+res <- prop.test(x = c(2, 4), n = c(4653, 18791))
 # Printing the results
 res 
+(2/4)*100
 
 # Neuroptera        
-res <- prop.test(x = c(2, 62), n = c(8172, 18791))
+res <- prop.test(x = c(2, 62), n = c(4653, 18791))
 # Printing the results
 res 
+(2/62)*100
 
 # Odonata           
-res <- prop.test(x = c(9, 60), n = c(8172, 18791))
+res <- prop.test(x = c(7, 60), n = c(4653, 18791))
 # Printing the results
 res 
+(7/60)*100
+
 # Orthoptera        
-res <- prop.test(x = c(10, 38), n = c(8172, 18791))
+res <- prop.test(x = c(6, 38), n = c(4653, 18791))
 # Printing the results
 res 
+(6/38)*100
+
 # Plecoptera        
-res <- prop.test(x = c(3, 25), n = c(8172, 18791))
+res <- prop.test(x = c(1, 25), n = c(4653, 18791))
 # Printing the results
 res 
+(1/25)*100
+
 # Psocoptera (Psocodea)
-res <- prop.test(x = c(49, 62), n = c(8172, 18791))
+res <- prop.test(x = c(30, 62), n = c(4653, 18791))
 # Printing the results
 res 
+(30/62)*100
+
 # Thysanoptera     
-res <- prop.test(x = c(89, 113), n = c(8172, 18791))
+res <- prop.test(x = c(42, 113), n = c(4653, 18791))
 # Printing the results
 res 
+(42/113)*100
+
 # Trichoptera   
-res <- prop.test(x = c(9, 172), n = c(8172, 18791))
+res <- prop.test(x = c(8, 172), n = c(4653, 18791))
 # Printing the results
 res 
+(8/172)*100
 
 ### phyloseq #############
 OTU = otu_table(asvs, taxa_are_rows = TRUE)
